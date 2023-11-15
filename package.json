@@ -1,0 +1,24 @@
+{
+  "name": "scnew_redactor",
+  "version": "1.0.0",
+  "description": "",
+  "main": "main.ts",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "build": "tsc src/main.ts && npx node-sass src/styles.scss src/styles.css"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/kalenav/scnew_redactor.git"
+  },
+  "author": "",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/kalenav/scnew_redactor/issues"
+  },
+  "homepage": "https://github.com/kalenav/scnew_redactor#readme",
+  "devDependencies": {
+    "@types/node": "^20.9.0",
+    "node-sass": "^9.0.0"
+  }
+}
