@@ -1,6 +1,6 @@
 import { Injectable } from '@angular/core';
 import { environment } from 'src/environments/environment';
-import { ScAddr, ScClient, ScTemplate,, ScType } from 'src/ts-sc-client/src';
+import { ScAddr, ScClient, ScTemplate, ScType } from 'src/ts-sc-client/src';
 
 @Injectable({
     providedIn: 'root'
@@ -16,9 +16,10 @@ export class ScClientService {
         const linkedEntitiesScAddrs: ScAddr[] = [];
     
         const template = new ScTemplate();
+        const conceptClass = (await this.scClient.resolveKeynodes([{ id: "concept_class", type: ScType.NodeConst }]))["concept_class"];
     
         template.triple(
-            ScType.NodeVar,
+            conceptClass,
             ScType.EdgeAccessVarPosPerm,
             ScType.NodeVar
         );
