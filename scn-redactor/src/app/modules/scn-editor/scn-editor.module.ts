@@ -1,13 +1,13 @@
 import { NgModule } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { ScnEditorComponent } from './scn-editor/scn-editor.component';
-import { ScnListItemComponent } from './scn-list-item/scn-list-item.component';
 import { MatTreeModule } from '@angular/material/tree';
+import { ScnTreeItemComponent } from './scn-tree-item/scn-tree-item.component';
 
 @NgModule({
     declarations: [
         ScnEditorComponent,
-        ScnListItemComponent
+        ScnTreeItemComponent
     ],
     imports: [
         CommonModule,

@@ -1,0 +1,6 @@
+<span>{{ scnTreeNode.idtf }}</span>
+<ng-container *ngFor="let neighbor of getSemanticVicinityByRelation(ScEdgeIdtf.EdgeAccessConstPosPerm)">
+    <div class="group">
+        <scn-tree-item [scnTreeNode]="neighbor"></scn-tree-item>
+    </div>
+</ng-container>
