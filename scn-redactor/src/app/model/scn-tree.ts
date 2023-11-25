@@ -62,3 +62,11 @@ export class ScnTreeNode {
         this.semanticVicinity = params.semanticVicinity ?? new SemanticVicinity();
     }
 }
+
+export class ScnTree {
+    public readonly root: ScnTreeNode;
+
+    constructor(root: ScnTreeNode) {
+        this.root = root;
+    }
+}

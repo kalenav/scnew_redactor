@@ -1,7 +1,7 @@
-import { ScnTreeNode, SemanticVicinity, SemanticVicinityByEdgeType } from "../model/scn-tree-node";
+import { ScnTree, ScnTreeNode, SemanticVicinity, SemanticVicinityByEdgeType } from "../model/scn-tree";
 import { ScEdgeIdtf } from "../shared/sc-edge-idtf.enum";
 
-export const ScnMockTreeRoot = new ScnTreeNode({
+export const ScnMockTree = new ScnTree(new ScnTreeNode({
     idtf: "lvl0",
     semanticVicinity: new SemanticVicinity({
         [ScEdgeIdtf.EdgeAccessConstPosPerm]: new SemanticVicinityByEdgeType({
@@ -19,4 +19,4 @@ export const ScnMockTreeRoot = new ScnTreeNode({
             sources: [new ScnTreeNode({ idtf: "lvl1-2" })]
         })
     })
-})
+}));

@@ -1,5 +1,5 @@
 import { Component, Input } from '@angular/core';
-import { ScnTreeNode, SemanticVicinityByEdgeType } from 'src/app/model/scn-tree-node';
+import { ScnTreeNode, SemanticVicinityByEdgeType } from 'src/app/model/scn-tree';
 import { ScEdgeIdtf } from 'src/app/shared/sc-edge-idtf.enum';
 
 @Component({
