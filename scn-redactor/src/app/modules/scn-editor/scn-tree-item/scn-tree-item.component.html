@@ -1,6 +1,27 @@
 <span>{{ scnTreeNode.idtf }}</span>
-<ng-container *ngFor="let neighbor of getSemanticVicinityByRelation(ScEdgeIdtf.EdgeAccessConstPosPerm)">
-    <div class="group">
-        <scn-tree-item [scnTreeNode]="neighbor"></scn-tree-item>
-    </div>
+
+<ng-container *ngIf="{
+    accessPosConstPerm: getSemanticVicinityByEdgeType(ScEdgeIdtf.EdgeAccessConstPosPerm)
+} as semanticVicinity">
+    <ng-container *ngTemplateOutlet="neighborGroup;
+        context: {$implicit: {
+            groupSymbols: groupSymbols.EdgeAccessConstPosPerm,
+            semanticVicinity: semanticVicinity.accessPosConstPerm
+        }}"
+    ></ng-container>
 </ng-container>
+
+<ng-template #neighborGroup let-context>
+    <ng-container *ngIf="context.semanticVicinity.targets.length">
+        <div>{{ context.groupSymbols.from }}:</div>
+        <div class="group" *ngFor="let neighbor of context.semanticVicinity.targets">
+            <scn-tree-item [scnTreeNode]="neighbor"></scn-tree-item>
+        </div>
+    </ng-container>
+    <ng-container *ngIf="context.semanticVicinity.sources.length">
+        <div>{{ context.groupSymbols.to }}:</div>
+        <div class="group" *ngFor="let neighbor of context.semanticVicinity.sources">
+            <scn-tree-item [scnTreeNode]="neighbor"></scn-tree-item>
+        </div>
+    </ng-container>
+</ng-template>

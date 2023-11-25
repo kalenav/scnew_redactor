@@ -1,5 +1,5 @@
 import { Component, Input } from '@angular/core';
-import { ScnTreeNode } from 'src/app/model/scn-tree-node';
+import { ScnTreeNode, SemanticVicinityByEdgeType } from 'src/app/model/scn-tree-node';
 import { ScEdgeIdtf } from 'src/app/shared/sc-edge-idtf.enum';
 
 @Component({
@@ -12,8 +12,11 @@ export class ScnTreeItemComponent {
     @Input() public isRoot: boolean = false;
 
     public readonly ScEdgeIdtf = ScEdgeIdtf;
+    public readonly groupSymbols: Partial<Record<ScEdgeIdtf, { from: string, to: string }>> = {
+        [ScEdgeIdtf.EdgeAccessConstPosPerm]: { from: '->', to: '<-' }
+    };
 
-    public getSemanticVicinityByRelation(relation: ScEdgeIdtf): ScnTreeNode[] {
-        return this.scnTreeNode.semanticVicinity[relation] ?? [];
+    public getSemanticVicinityByEdgeType(relation: ScEdgeIdtf): SemanticVicinityByEdgeType {
+        return this.scnTreeNode.semanticVicinity.get(relation);
     }
 }
