@@ -1,1 +1,8 @@
-<scn-list-item [isRoot]="true"></scn-list-item>
+<mat-tree [dataSource]="dataSource" [treeControl]="scnTreeControl">
+    <mat-nested-tree-node *matTreeNodeDef="let node">
+        <span>{{ node.idtf }}</span>
+        <div role="group">
+            <ng-container matTreeNodeOutlet></ng-container>
+        </div>
+    </mat-nested-tree-node>
+</mat-tree>

@@ -9,6 +9,13 @@ export const SimpleScnTree: ScnTreeNode = new ScnTreeNode({
                 new ScnTreeNode({ idtf: "lvl3-1" }),
                 new ScnTreeNode({ idtf: "lvl3-2" })
             ]
+        }),
+        new ScnTreeNode({ idtf: "lvl2-3" }),
+        new ScnTreeNode({
+            idtf: "lvl2-4", children: [
+                new ScnTreeNode({ idtf: "lvl3-3" }),
+                new ScnTreeNode({ idtf: "lvl3-4" })
+            ]
         })
     ]
 })
