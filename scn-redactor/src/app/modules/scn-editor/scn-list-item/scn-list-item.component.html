@@ -1,0 +1,15 @@
+<mat-tree *ngIf="isRoot; else nested">
+    <ng-container *ngTemplateOutlet="children"></ng-container>
+</mat-tree>
+<ng-template #nested>
+    <mat-nested-tree-node>
+        <ng-container *ngTemplateOutlet="children"></ng-container>
+    </mat-nested-tree-node>
+</ng-template>
+
+<ng-template #children>
+    <scn-list-item
+        *ngFor="let child of scnTreeNode.children"
+        [scnTreeNode]="child"
+    ></scn-list-item>
+</ng-template>
