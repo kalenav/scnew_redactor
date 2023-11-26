@@ -17,16 +17,35 @@ export const ScnMockTree = new ScnTree(new ScnTreeNode({
                         })
                     })
                 ],
-                sources: [new ScnTreeNode({ idtf: "lvl1-2" })]
+                sources: [new ScnTreeNode({ idtf: "lvl1-3" })]
             }),
             new SemanticVicinityByEdgeType({
                 idtf: "ключевой sc-элемент'",
-                targets: [new ScnTreeNode({ idtf: "lvl1-3" })]
+                targets: [new ScnTreeNode({ idtf: "lvl1-4" })]
             })
         ],
         [ScEdgeIdtf.EdgeDCommonConst]: [new SemanticVicinityByEdgeType({
             idtf: "основной идентификатор*",
-            targets: [new ScnTreeNode({ isLink: true, htmlContents: "le mock identifier with a <a href='https://ru.wikipedia.org/wiki/%D0%9B%D0%B8%D1%81%D0%B8%D1%86%D0%B0'>link</a> to smth" })]
+            targets: [
+                new ScnTreeNode({
+                    isLink: true,
+                    htmlContents: "le mock identifier with a <a href='https://ru.wikipedia.org/wiki/%D0%9B%D0%B8%D1%81%D0%B8%D1%86%D0%B0'>link</a> to smth",
+                    semanticVicinity: new SemanticVicinity({
+                        [ScEdgeIdtf.EdgeAccessConstPosPerm]: [new SemanticVicinityByEdgeType({
+                            sources: [new ScnTreeNode({ idtf: "lang_en" })]
+                        })]
+                    })
+                }),
+                new ScnTreeNode({
+                    isLink: true,
+                    htmlContents: "hhhhhhhhh",
+                    semanticVicinity: new SemanticVicinity({
+                        [ScEdgeIdtf.EdgeAccessConstPosPerm]: [new SemanticVicinityByEdgeType({
+                            sources: [new ScnTreeNode({ idtf: "lang_ru" })]
+                        })]
+                    })
+                })
+            ]
         })]
     })
 }));

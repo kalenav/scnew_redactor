@@ -10,6 +10,7 @@ import { ScEdgeIdtf } from 'src/app/shared/sc-edge-idtf.enum';
 export class ScnTreeItemComponent {
     @Input({ required: true }) public scnTreeNode!: ScnTreeNode;
     @Input() public isRoot: boolean = false;
+    @Input() public hasBullet: boolean = false;
 
     @ViewChild('linkContentsContainer') public set setter(content: ElementRef | undefined) {
         if (content !== undefined) {

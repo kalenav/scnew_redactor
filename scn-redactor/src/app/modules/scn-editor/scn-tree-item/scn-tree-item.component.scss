@@ -25,4 +25,13 @@
     .group {
         padding-left: 20px;
     }
+
+    .group, .group-header {
+        padding-top: 3px;
+    }
+
+    .bullet-point {
+        color: #337ab7;
+        font-size: 1.2em;
+    }
 }
