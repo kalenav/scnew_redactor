@@ -20,7 +20,7 @@ export const ScnMockTree = new ScnTree(new ScnTreeNode({
         }),
         [ScEdgeIdtf.EdgeDCommonConst]: new SemanticVicinityByEdgeType({
             idtf: "основной идентификатор*",
-            targets: [new ScnTreeNode({ idtf: "lvl2-2" })]
+            targets: [new ScnTreeNode({ isLink: true, htmlContents: "le mock identifier with a <a href='https://ru.wikipedia.org/wiki/%D0%9B%D0%B8%D1%81%D0%B8%D1%86%D0%B0'>link</a> to smth" })]
         })
     })
 }));

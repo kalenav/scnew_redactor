@@ -1,4 +1,4 @@
-import { Component, Input } from '@angular/core';
+import { Component, ElementRef, Input, ViewChild } from '@angular/core';
 import { ScnTreeNode, SemanticVicinityByEdgeType } from 'src/app/model/scn-tree';
 import { ScEdgeIdtf } from 'src/app/shared/sc-edge-idtf.enum';
 
@@ -10,6 +10,12 @@ import { ScEdgeIdtf } from 'src/app/shared/sc-edge-idtf.enum';
 export class ScnTreeItemComponent {
     @Input({ required: true }) public scnTreeNode!: ScnTreeNode;
     @Input() public isRoot: boolean = false;
+
+    @ViewChild('linkContentsContainer') public set setter(content: ElementRef | undefined) {
+        if (content !== undefined) {
+            content.nativeElement.innerHTML = this.scnTreeNode.htmlContents;
+        }
+    }
 
     public readonly ScEdgeIdtf = ScEdgeIdtf;
     public readonly groupSymbols: Record<ScEdgeIdtf, { from: string, to: string }> = {

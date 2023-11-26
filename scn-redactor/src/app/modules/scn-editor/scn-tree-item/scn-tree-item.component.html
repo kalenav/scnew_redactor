@@ -1,10 +1,17 @@
 <div
+    *ngIf="!scnTreeNode.isLink; else linkContents"
     class="entity-identifier"
     [class.root]="isRoot"
     (click)="!isRoot && onNodeIdentifierClick()"
 >
     {{ scnTreeNode.idtf }}
 </div>
+<ng-template #linkContents>
+    <div
+        #linkContentsContainer
+        class="link-contents"
+    ></div>
+</ng-template>
 
 <ng-container *ngIf="{
     accessConstFuzPerm: getSemanticVicinityByEdgeType(ScEdgeIdtf.EdgeAccessConstFuzPerm),

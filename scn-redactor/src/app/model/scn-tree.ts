@@ -60,10 +60,14 @@ export class SemanticVicinity {
 export class ScnTreeNode {
     public readonly idtf: string;
     public readonly semanticVicinity: SemanticVicinity;
+    public readonly isLink: boolean;
+    public readonly htmlContents: string;
 
-    constructor(params: Partial<ScnTreeNode>) {
-        this.idtf = params.idtf ?? '...';
-        this.semanticVicinity = params.semanticVicinity ?? new SemanticVicinity();
+    constructor(params?: Partial<ScnTreeNode>) {
+        this.idtf = params?.idtf ?? '...';
+        this.semanticVicinity = params?.semanticVicinity ?? new SemanticVicinity();
+        this.isLink = params?.isLink ?? false;
+        this.htmlContents = params?.htmlContents ?? '';
     }
 }
 
