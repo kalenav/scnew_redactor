@@ -21,38 +21,40 @@ export class SemanticVicinityByEdgeType {
 }
 
 export class SemanticVicinity {
-    private readonly semanticVicinity: Record<ScEdgeIdtf, SemanticVicinityByEdgeType> = {
-        [ScEdgeIdtf.EdgeAccessConstFuzPerm]: new SemanticVicinityByEdgeType(),
-        [ScEdgeIdtf.EdgeAccessConstFuzTemp]: new SemanticVicinityByEdgeType(),
-        [ScEdgeIdtf.EdgeAccessConstNegPerm]: new SemanticVicinityByEdgeType(),
-        [ScEdgeIdtf.EdgeAccessConstNegTemp]: new SemanticVicinityByEdgeType(),
-        [ScEdgeIdtf.EdgeAccessConstPosPerm]: new SemanticVicinityByEdgeType(),
-        [ScEdgeIdtf.EdgeAccessConstPosTemp]: new SemanticVicinityByEdgeType(),
-        [ScEdgeIdtf.EdgeAccessVarFuzPerm]: new SemanticVicinityByEdgeType(),
-        [ScEdgeIdtf.EdgeAccessVarFuzTemp]: new SemanticVicinityByEdgeType(),
-        [ScEdgeIdtf.EdgeAccessVarNegPerm]: new SemanticVicinityByEdgeType(),
-        [ScEdgeIdtf.EdgeAccessVarNegTemp]: new SemanticVicinityByEdgeType(),
-        [ScEdgeIdtf.EdgeAccessVarPosPerm]: new SemanticVicinityByEdgeType(),
-        [ScEdgeIdtf.EdgeAccessVarPosTemp]: new SemanticVicinityByEdgeType(),
-        [ScEdgeIdtf.EdgeDCommonConst]: new SemanticVicinityByEdgeType(),
-        [ScEdgeIdtf.EdgeDCommonVar]: new SemanticVicinityByEdgeType(),
-        [ScEdgeIdtf.EdgeUCommonConst]: new SemanticVicinityByEdgeType(),
-        [ScEdgeIdtf.EdgeUCommonVar]: new SemanticVicinityByEdgeType(),
+    private readonly semanticVicinity: Record<ScEdgeIdtf, Array<SemanticVicinityByEdgeType>> = {
+        [ScEdgeIdtf.EdgeAccessConstFuzPerm]: [],
+        [ScEdgeIdtf.EdgeAccessConstFuzTemp]: [],
+        [ScEdgeIdtf.EdgeAccessConstNegPerm]: [],
+        [ScEdgeIdtf.EdgeAccessConstNegTemp]: [],
+        [ScEdgeIdtf.EdgeAccessConstPosPerm]: [],
+        [ScEdgeIdtf.EdgeAccessConstPosTemp]: [],
+        [ScEdgeIdtf.EdgeAccessVarFuzPerm]: [],
+        [ScEdgeIdtf.EdgeAccessVarFuzTemp]: [],
+        [ScEdgeIdtf.EdgeAccessVarNegPerm]: [],
+        [ScEdgeIdtf.EdgeAccessVarNegTemp]: [],
+        [ScEdgeIdtf.EdgeAccessVarPosPerm]: [],
+        [ScEdgeIdtf.EdgeAccessVarPosTemp]: [],
+        [ScEdgeIdtf.EdgeDCommonConst]: [],
+        [ScEdgeIdtf.EdgeDCommonVar]: [],
+        [ScEdgeIdtf.EdgeUCommonConst]: [],
+        [ScEdgeIdtf.EdgeUCommonVar]: []
     };
 
-    constructor(semanticVicinity?: Partial<Record<ScEdgeIdtf, SemanticVicinityByEdgeType>>) {
+    constructor(semanticVicinity?: Partial<Record<ScEdgeIdtf, Array<SemanticVicinityByEdgeType>>>) {
         if (semanticVicinity !== undefined) {
             for (const edgeType in semanticVicinity) {
-                this.semanticVicinity[edgeType as ScEdgeIdtf] = new SemanticVicinityByEdgeType({
-                    idtf: semanticVicinity[edgeType as ScEdgeIdtf]!.idtf,
-                    sources: semanticVicinity[edgeType as ScEdgeIdtf]!.sources.slice(),
-                    targets: semanticVicinity[edgeType as ScEdgeIdtf]!.targets.slice()
-                })
+                for (const currEdgeSemanticVicinity of semanticVicinity[edgeType as ScEdgeIdtf]!) {
+                    this.semanticVicinity[edgeType as ScEdgeIdtf].push(new SemanticVicinityByEdgeType({
+                        idtf: currEdgeSemanticVicinity.idtf,
+                        sources: currEdgeSemanticVicinity.sources.slice(),
+                        targets: currEdgeSemanticVicinity.targets.slice()
+                    }));
+                }
             }
         }
     }
 
-    public get(edgeType: ScEdgeIdtf): SemanticVicinityByEdgeType {
+    public get(edgeType: ScEdgeIdtf): Array<SemanticVicinityByEdgeType> {
         return this.semanticVicinity[edgeType];
     }
 }

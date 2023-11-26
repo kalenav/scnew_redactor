@@ -38,7 +38,7 @@ export class ScnTreeItemComponent {
         [ScEdgeIdtf.EdgeUCommonVar]: { from: '_⇔', to: '_⇔' }
     };
 
-    public getSemanticVicinityByEdgeType(relation: ScEdgeIdtf): SemanticVicinityByEdgeType {
+    public getSemanticVicinityByEdgeType(relation: ScEdgeIdtf): Array<SemanticVicinityByEdgeType> {
         return this.scnTreeNode.semanticVicinity.get(relation);
     }
 
