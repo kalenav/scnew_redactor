@@ -1,6 +1,8 @@
 import { ScEdgeIdtf } from "../shared/sc-edge-idtf.enum";
 
 export class SemanticVicinityByEdgeType {
+    public readonly idtf: string;
+
     /**
      * @description The array of nodes that are the sources of arcs that the node is the target for.
      */
@@ -12,6 +14,7 @@ export class SemanticVicinityByEdgeType {
     public readonly targets: Array<ScnTreeNode>;
 
     constructor(params?: Partial<SemanticVicinityByEdgeType>) {
+        this.idtf = params?.idtf ?? '';
         this.sources = params?.sources ?? [];
         this.targets = params?.targets ?? [];
     }
@@ -41,6 +44,7 @@ export class SemanticVicinity {
         if (semanticVicinity !== undefined) {
             for (const edgeType in semanticVicinity) {
                 this.semanticVicinity[edgeType as ScEdgeIdtf] = new SemanticVicinityByEdgeType({
+                    idtf: semanticVicinity[edgeType as ScEdgeIdtf]!.idtf,
                     sources: semanticVicinity[edgeType as ScEdgeIdtf]!.sources.slice(),
                     targets: semanticVicinity[edgeType as ScEdgeIdtf]!.targets.slice()
                 })
@@ -58,7 +62,7 @@ export class ScnTreeNode {
     public readonly semanticVicinity: SemanticVicinity;
 
     constructor(params: Partial<ScnTreeNode>) {
-        this.idtf = params.idtf ?? '';
+        this.idtf = params.idtf ?? '...';
         this.semanticVicinity = params.semanticVicinity ?? new SemanticVicinity();
     }
 }

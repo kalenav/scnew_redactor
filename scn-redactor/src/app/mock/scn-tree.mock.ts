@@ -17,6 +17,10 @@ export const ScnMockTree = new ScnTree(new ScnTreeNode({
                 })
             ],
             sources: [new ScnTreeNode({ idtf: "lvl1-2" })]
+        }),
+        [ScEdgeIdtf.EdgeDCommonConst]: new SemanticVicinityByEdgeType({
+            idtf: "основной идентификатор*",
+            targets: [new ScnTreeNode({ idtf: "lvl2-2" })]
         })
     })
 }));
