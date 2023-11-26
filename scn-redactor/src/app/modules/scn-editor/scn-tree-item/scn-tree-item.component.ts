@@ -13,9 +13,10 @@ export class ScnTreeItemComponent {
 
     public readonly ScEdgeIdtf = ScEdgeIdtf;
     public readonly groupSymbols: Record<ScEdgeIdtf, { from: string, to: string }> = {
+        // there is no reverse crossed epsilon in UTF
         [ScEdgeIdtf.EdgeAccessConstFuzPerm]: { from: '/϶', to: 'ϵ/' },
         [ScEdgeIdtf.EdgeAccessConstFuzTemp]: { from: '~/϶', to: 'ϵ/~' },
-        [ScEdgeIdtf.EdgeAccessConstNegPerm]: { from: '!϶', to: '∉' }, // there is no reverse crossed epsilon in UTF
+        [ScEdgeIdtf.EdgeAccessConstNegPerm]: { from: '!϶', to: '∉' },
         [ScEdgeIdtf.EdgeAccessConstNegTemp]: { from: '~!϶', to: '~∉' },
         [ScEdgeIdtf.EdgeAccessConstPosPerm]: { from: '϶', to: 'ϵ' },
         [ScEdgeIdtf.EdgeAccessConstPosTemp]: { from: '~϶', to: '~ϵ' },
@@ -33,5 +34,13 @@ export class ScnTreeItemComponent {
 
     public getSemanticVicinityByEdgeType(relation: ScEdgeIdtf): SemanticVicinityByEdgeType {
         return this.scnTreeNode.semanticVicinity.get(relation);
+    }
+
+    public onNodeIdentifierClick(): void {
+        alert(`opening ${this.scnTreeNode.idtf}`);
+    }
+
+    public onEdgeIdentifierClick(arcIdtf: string): void {
+        alert(`opening ${arcIdtf}`);
     }
 }

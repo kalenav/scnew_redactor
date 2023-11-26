@@ -1,4 +1,11 @@
-<div>{{ scnTreeNode.idtf }}</div>
+<div
+    class="entity-identifier"
+    [class.root]="isRoot"
+    (click)="!isRoot && onNodeIdentifierClick()"
+>
+    {{ scnTreeNode.idtf }}
+</div>
+
 <ng-container *ngIf="{
     accessConstFuzPerm: getSemanticVicinityByEdgeType(ScEdgeIdtf.EdgeAccessConstFuzPerm),
     accessConstFuzTemp: getSemanticVicinityByEdgeType(ScEdgeIdtf.EdgeAccessConstFuzTemp),
@@ -119,7 +126,13 @@
     <ng-container *ngIf="context.semanticVicinity.targets.length">
         <div class="group-header">
             <span class="group-symbol">{{ context.groupSymbols.from }}</span>
-            <span *ngIf="!!context.semanticVicinity.idtf.length" class="edge-main-idtf"> {{ context.semanticVicinity.idtf }}</span>
+            <span
+                *ngIf="!!context.semanticVicinity.idtf.length"
+                class="entity-identifier"
+                (click)="onEdgeIdentifierClick(context.semanticVicinity.idtf)"
+            >
+                {{ context.semanticVicinity.idtf }}
+            </span>
             <span>:</span>
         </div>
         <div class="group" *ngFor="let neighbor of context.semanticVicinity.targets">
@@ -129,7 +142,13 @@
     <ng-container *ngIf="context.semanticVicinity.sources.length">
         <div class="group-header">
             <span class="group-symbol">{{ context.groupSymbols.to }}</span>
-            <span *ngIf="!!context.semanticVicinity.idtf.length" class="edge-main-idtf"> {{ context.semanticVicinity.idtf }}</span>
+            <span
+                *ngIf="!!context.semanticVicinity.idtf.length"
+                class="entity-identifier"
+                (click)="onEdgeIdentifierClick(context.semanticVicinity.idtf)"
+            >
+                {{ context.semanticVicinity.idtf }}
+            </span>
             <span>:</span>
         </div>
         <div class="group" *ngFor="let neighbor of context.semanticVicinity.sources">

@@ -1,4 +1,19 @@
 :host {
+    .entity-identifier {
+        color: #337ab7;
+
+        &.root {
+            font-size: 1.2em;
+            font-style: italic;
+            font-weight: bolder;
+        }
+
+        &:not(.root):hover {
+            cursor: pointer;
+            text-decoration: underline;
+        }
+    }
+
     .group {
         padding-left: 20px;
     }
