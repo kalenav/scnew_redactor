@@ -1,0 +1,221 @@
+<div class="tree-node-content">
+    <span *ngIf="hasBullet" class="bullet-point">•</span>
+    <span
+        *ngIf="!scnTreeNode.isLink; else linkContents"
+        class="entity-identifier"
+        [class.root]="isRoot"
+        (click)="!isRoot && onNodeIdentifierClick()"
+    >
+        {{ scnTreeNode.idtf }}
+    </span>
+    <ng-template #linkContents>
+        <div
+            #linkContentsContainer
+            class="link-contents"
+        ></div>
+    </ng-template>
+</div>
+
+<ng-container *ngIf="{
+    accessConstFuzPerm: getSemanticVicinityByEdgeType(ScEdgeIdtf.EdgeAccessConstFuzPerm),
+    accessConstFuzTemp: getSemanticVicinityByEdgeType(ScEdgeIdtf.EdgeAccessConstFuzTemp),
+    accessConstNegPerm: getSemanticVicinityByEdgeType(ScEdgeIdtf.EdgeAccessConstNegPerm),
+    accessConstNegTemp: getSemanticVicinityByEdgeType(ScEdgeIdtf.EdgeAccessConstNegTemp),
+    accessConstPosPerm: getSemanticVicinityByEdgeType(ScEdgeIdtf.EdgeAccessConstPosPerm),
+    accessConstPosTemp: getSemanticVicinityByEdgeType(ScEdgeIdtf.EdgeAccessConstPosTemp),
+    accessVarFuzPerm: getSemanticVicinityByEdgeType(ScEdgeIdtf.EdgeAccessVarFuzPerm),
+    accessVarFuzTemp: getSemanticVicinityByEdgeType(ScEdgeIdtf.EdgeAccessVarFuzTemp),
+    accessVarNegPerm: getSemanticVicinityByEdgeType(ScEdgeIdtf.EdgeAccessVarNegPerm),
+    accessVarNegTemp: getSemanticVicinityByEdgeType(ScEdgeIdtf.EdgeAccessVarNegTemp),
+    accessVarPosPerm: getSemanticVicinityByEdgeType(ScEdgeIdtf.EdgeAccessVarPosPerm),
+    accessVarPosTemp: getSemanticVicinityByEdgeType(ScEdgeIdtf.EdgeAccessVarPosTemp),
+    dCommonConst: getSemanticVicinityByEdgeType(ScEdgeIdtf.EdgeDCommonConst),
+    dCommonVar: getSemanticVicinityByEdgeType(ScEdgeIdtf.EdgeDCommonVar),
+    uCommonConst: getSemanticVicinityByEdgeType(ScEdgeIdtf.EdgeUCommonConst),
+    uCommonVar: getSemanticVicinityByEdgeType(ScEdgeIdtf.EdgeUCommonVar)
+} as semanticVicinity">
+    <ng-container *ngFor="let edgeSemanticVicinity of semanticVicinity.accessConstFuzPerm">
+        <ng-container *ngTemplateOutlet="neighborGroup;
+            context: {$implicit: {
+                groupSymbols: groupSymbols.EdgeAccessConstFuzPerm,
+                semanticVicinity: edgeSemanticVicinity
+            }}"
+        ></ng-container>
+    </ng-container>
+
+    <ng-container *ngFor="let edgeSemanticVicinity of semanticVicinity.accessConstFuzTemp">
+        <ng-container *ngTemplateOutlet="neighborGroup;
+            context: {$implicit: {
+                groupSymbols: groupSymbols.EdgeAccessConstFuzTemp,
+                semanticVicinity: edgeSemanticVicinity
+            }}"
+        ></ng-container>
+    </ng-container>
+
+    <ng-container *ngFor="let edgeSemanticVicinity of semanticVicinity.accessConstNegPerm">
+        <ng-container *ngTemplateOutlet="neighborGroup;
+            context: {$implicit: {
+                groupSymbols: groupSymbols.EdgeAccessConstNegPerm,
+                semanticVicinity: edgeSemanticVicinity
+            }}"
+        ></ng-container>
+    </ng-container>
+
+    <ng-container *ngFor="let edgeSemanticVicinity of semanticVicinity.accessConstNegTemp">
+        <ng-container *ngTemplateOutlet="neighborGroup;
+            context: {$implicit: {
+                groupSymbols: groupSymbols.EdgeAccessConstNegTemp,
+                semanticVicinity: edgeSemanticVicinity
+            }}"
+        ></ng-container>
+    </ng-container>
+
+    <ng-container *ngFor="let edgeSemanticVicinity of semanticVicinity.accessConstPosPerm">
+        <ng-container *ngTemplateOutlet="neighborGroup;
+            context: {$implicit: {
+                groupSymbols: groupSymbols.EdgeAccessConstPosPerm,
+                semanticVicinity: edgeSemanticVicinity
+            }}"
+        ></ng-container>
+    </ng-container>
+
+    <ng-container *ngFor="let edgeSemanticVicinity of semanticVicinity.accessConstPosTemp">
+        <ng-container *ngTemplateOutlet="neighborGroup;
+            context: {$implicit: {
+                groupSymbols: groupSymbols.EdgeAccessConstPosTemp,
+                semanticVicinity: edgeSemanticVicinity
+            }}"
+        ></ng-container>
+    </ng-container>
+
+    <ng-container *ngFor="let edgeSemanticVicinity of semanticVicinity.accessVarFuzPerm">
+        <ng-container *ngTemplateOutlet="neighborGroup;
+            context: {$implicit: {
+                groupSymbols: groupSymbols.EdgeAccessVarFuzPerm,
+                semanticVicinity: edgeSemanticVicinity
+            }}"
+        ></ng-container>
+    </ng-container>
+
+    <ng-container *ngFor="let edgeSemanticVicinity of semanticVicinity.accessVarFuzTemp">
+        <ng-container *ngTemplateOutlet="neighborGroup;
+            context: {$implicit: {
+                groupSymbols: groupSymbols.EdgeAccessVarFuzTemp,
+                semanticVicinity: edgeSemanticVicinity
+            }}"
+        ></ng-container>
+    </ng-container>
+
+    <ng-container *ngFor="let edgeSemanticVicinity of semanticVicinity.accessVarNegPerm">
+        <ng-container *ngTemplateOutlet="neighborGroup;
+            context: {$implicit: {
+                groupSymbols: groupSymbols.EdgeAccessVarNegPerm,
+                semanticVicinity: edgeSemanticVicinity
+            }}"
+        ></ng-container>
+    </ng-container>
+
+    <ng-container *ngFor="let edgeSemanticVicinity of semanticVicinity.accessVarNegTemp">
+        <ng-container *ngTemplateOutlet="neighborGroup;
+            context: {$implicit: {
+                groupSymbols: groupSymbols.EdgeAccessVarNegTemp,
+                semanticVicinity: edgeSemanticVicinity
+            }}"
+        ></ng-container>
+    </ng-container>
+
+    <ng-container *ngFor="let edgeSemanticVicinity of semanticVicinity.accessVarPosPerm">
+        <ng-container *ngTemplateOutlet="neighborGroup;
+            context: {$implicit: {
+                groupSymbols: groupSymbols.EdgeAccessVarPosPerm,
+                semanticVicinity: edgeSemanticVicinity
+            }}"
+        ></ng-container>
+    </ng-container>
+
+    <ng-container *ngFor="let edgeSemanticVicinity of semanticVicinity.accessVarPosTemp">
+        <ng-container *ngTemplateOutlet="neighborGroup;
+            context: {$implicit: {
+                groupSymbols: groupSymbols.EdgeAccessVarPosTemp,
+                semanticVicinity: edgeSemanticVicinity
+            }}"
+        ></ng-container>
+    </ng-container>
+
+    <ng-container *ngFor="let edgeSemanticVicinity of semanticVicinity.dCommonConst">
+        <ng-container *ngTemplateOutlet="neighborGroup;
+            context: {$implicit: {
+                groupSymbols: groupSymbols.EdgeDCommonConst,
+                semanticVicinity: edgeSemanticVicinity
+            }}"
+        ></ng-container>
+    </ng-container>
+
+    <ng-container *ngFor="let edgeSemanticVicinity of semanticVicinity.dCommonVar">
+        <ng-container *ngTemplateOutlet="neighborGroup;
+            context: {$implicit: {
+                groupSymbols: groupSymbols.EdgeDCommonVar,
+                semanticVicinity: edgeSemanticVicinity
+            }}"
+        ></ng-container>
+    </ng-container>
+
+    <ng-container *ngFor="let edgeSemanticVicinity of semanticVicinity.uCommonConst">
+        <ng-container *ngTemplateOutlet="neighborGroup;
+            context: {$implicit: {
+                groupSymbols: groupSymbols.EdgeUCommonConst,
+                semanticVicinity: edgeSemanticVicinity
+            }}"
+        ></ng-container>
+    </ng-container>
+
+    <ng-container *ngFor="let edgeSemanticVicinity of semanticVicinity.uCommonVar">
+        <ng-container *ngTemplateOutlet="neighborGroup;
+            context: {$implicit: {
+                groupSymbols: groupSymbols.EdgeUCommonVar,
+                semanticVicinity: edgeSemanticVicinity
+            }}"
+        ></ng-container>
+    </ng-container>
+</ng-container>
+
+<ng-template #neighborGroup let-context>
+    <ng-container *ngIf="context.semanticVicinity.targets.length">
+        <div class="group-header">
+            <span class="group-symbol">{{ context.groupSymbols.from }}</span>
+            <span
+                *ngIf="!!context.semanticVicinity.idtf.length"
+                class="entity-identifier"
+                (click)="onEdgeIdentifierClick(context.semanticVicinity.idtf)"
+            >
+                {{ context.semanticVicinity.idtf }}
+            </span>
+            <span>:</span>
+        </div>
+        <div class="group" *ngFor="let neighbor of context.semanticVicinity.targets">
+            <scn-tree-item
+                [scnTreeNode]="neighbor"
+                [hasBullet]="context.semanticVicinity.targets.length > 1"
+            ></scn-tree-item>
+        </div>
+    </ng-container>
+    <ng-container *ngIf="context.semanticVicinity.sources.length">
+        <div class="group-header">
+            <span class="group-symbol">{{ context.groupSymbols.to }}</span>
+            <span
+                *ngIf="!!context.semanticVicinity.idtf.length"
+                class="entity-identifier"
+                (click)="onEdgeIdentifierClick(context.semanticVicinity.idtf)"
+            >
+                {{ context.semanticVicinity.idtf }}
+            </span>
+            <span>:</span>
+        </div>
+        <div class="group" *ngFor="let neighbor of context.semanticVicinity.sources">
+            <scn-tree-item
+                [scnTreeNode]="neighbor"
+                [hasBullet]="context.semanticVicinity.sources.length > 1"
+            ></scn-tree-item>
+        </div>
+    </ng-container>
+</ng-template>

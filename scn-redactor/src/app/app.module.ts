@@ -2,20 +2,18 @@ import { NgModule } from '@angular/core';
 import { BrowserModule } from '@angular/platform-browser';
 import { AppRoutingModule } from './app-routing.module';
 import { AppComponent } from './app.component';
-import { ScnEditorComponent } from './components/scn-editor/scn-editor.component';
-import { ScnListItemComponent } from './components/scn-list-item/scn-list-item.component';
 import { BrowserAnimationsModule } from '@angular/platform-browser/animations';
+import { ScnEditorModule } from './modules/scn-editor/scn-editor.module';
 
 @NgModule({
     declarations: [
         AppComponent,
-        ScnEditorComponent,
-        ScnListItemComponent
     ],
     imports: [
         BrowserModule,
         AppRoutingModule,
-        BrowserAnimationsModule
+        BrowserAnimationsModule,
+        ScnEditorModule
     ],
     providers: [],
     bootstrap: [AppComponent]

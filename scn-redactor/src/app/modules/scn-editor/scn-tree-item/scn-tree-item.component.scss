@@ -1,0 +1,37 @@
+:host {
+    .entity-identifier {
+        color: #337ab7;
+
+        &.root {
+            font-size: 1.2em;
+            font-style: italic;
+            font-weight: bolder;
+        }
+
+        &:not(.root):hover {
+            cursor: pointer;
+            text-decoration: underline;
+        }
+    }
+
+    .link-contents {
+        width: fit-content;
+        padding: 5px;
+        margin: 2px;
+        border: solid 1px #cccccc;
+        background: url(../../../../assets/images/content_corner.png) 0 0 no-repeat #fafafa;
+    }
+
+    .group {
+        padding-left: 20px;
+    }
+
+    .group, .group-header {
+        padding-top: 3px;
+    }
+
+    .bullet-point {
+        color: #337ab7;
+        font-size: 1.2em;
+    }
+}
