@@ -9,7 +9,11 @@ import {
   ScEventType,
   ScTemplate,
   ScType,
+  ScTemplateResult,
+  ScLinkContent
 } from 'ts-sc-client';
+import { ScEdgeIdtf } from '../shared/sc-edge-idtf.enum';
+import { ScnTreeNode, SemanticVicinity, SemanticVicinityByEdgeType } from '../model/scn-tree';
 
 type ScTemplateParamValue = string | ScAddr | ScType;
 type ScTemplateParam = [ScTemplateParamValue, string] | ScTemplateParamValue;
@@ -21,30 +25,32 @@ export const snakeToCamelCase = <Str extends string>(str: Str): Str => {
   providedIn: 'root',
 })
 export class ScClientService {
-  private readonly scClient: ScClient;
   private cache: Map<string, ScAddr> = new Map();
+
+  private readonly scClient: ScClient;
+  private readonly nrelSystemIdtfScAddr: ScAddr = new ScAddr(3);
+  private readonly nrelMainIdtfScAddr: ScAddr = new ScAddr(743);
+  private readonly scTypeToScEdgeIdtfMap: Map<number, ScEdgeIdtf> = new Map<number, ScEdgeIdtf>([
+    [ScType.EdgeAccessConstFuzPerm.value, ScEdgeIdtf.EdgeAccessConstFuzPerm],
+    [ScType.EdgeAccessConstFuzTemp.value, ScEdgeIdtf.EdgeAccessConstFuzTemp],
+    [ScType.EdgeAccessConstNegPerm.value, ScEdgeIdtf.EdgeAccessConstNegPerm],
+    [ScType.EdgeAccessConstNegTemp.value, ScEdgeIdtf.EdgeAccessConstNegTemp],
+    [ScType.EdgeAccessConstPosPerm.value, ScEdgeIdtf.EdgeAccessConstPosPerm],
+    [ScType.EdgeAccessConstPosTemp.value, ScEdgeIdtf.EdgeAccessConstPosTemp],
+    [ScType.EdgeAccessVarFuzPerm.value, ScEdgeIdtf.EdgeAccessVarFuzPerm],
+    [ScType.EdgeAccessVarFuzTemp.value, ScEdgeIdtf.EdgeAccessVarFuzTemp],
+    [ScType.EdgeAccessVarNegPerm.value, ScEdgeIdtf.EdgeAccessVarNegPerm],
+    [ScType.EdgeAccessVarNegTemp.value, ScEdgeIdtf.EdgeAccessVarNegTemp],
+    [ScType.EdgeAccessVarPosPerm.value, ScEdgeIdtf.EdgeAccessVarPosPerm],
+    [ScType.EdgeAccessVarPosTemp.value, ScEdgeIdtf.EdgeAccessVarPosTemp],
+    [ScType.EdgeDCommonConst.value, ScEdgeIdtf.EdgeDCommonConst],
+    [ScType.EdgeDCommonVar.value, ScEdgeIdtf.EdgeDCommonVar],
+    [ScType.EdgeUCommonConst.value, ScEdgeIdtf.EdgeUCommonConst],
+    [ScType.EdgeUCommonVar.value, ScEdgeIdtf.EdgeUCommonVar]
+  ]);
 
   constructor() {
     this.scClient = new ScClient(environment.webSocketAddress);
-  }
-
-  public async getLinkedEntities(entityScAddr: ScAddr): Promise<ScAddr[]> {
-    const linkedEntitiesScAddrs: ScAddr[] = [];
-
-    const template = new ScTemplate();
-    const conceptClass = (
-      await this.scClient.resolveKeynodes([
-        { id: 'concept_class', type: ScType.NodeConst },
-      ])
-    )['concept_class'];
-
-    template.triple(conceptClass, ScType.EdgeAccessVarPosPerm, ScType.NodeVar);
-
-    const res = await this.scClient.templateSearch(template);
-    console.log(conceptClass);
-    console.log(res); // []
-
-    return linkedEntitiesScAddrs;
   }
 
   public findKeynodes = async <K extends [string, ...string[]]>(
@@ -136,13 +142,13 @@ export class ScClientService {
 
   public async selectScnPage(idtf: string | ScAddr) {
     const action = new Action('action_select_scn_page', this);
-    action.addArgs(idtf);
+    await action.addArgs(idtf);
     return action.initiate();
   }
 
   public async deleteScnPage(system_idtf: string) {
     const action = new Action('action_delete_scn_page', this);
-    action.addArgs(system_idtf);
+    await action.addArgs(system_idtf);
     return action.initiate();
   }
 
@@ -155,19 +161,19 @@ export class ScClientService {
    */
   public async openScnPage(idtf: string | ScAddr) {
     const action = new Action('action_open_scn_page', this);
-    action.addArgs(idtf);
+    await action.addArgs(idtf);
     return action.initiate();
   }
 
-  public removeElementFromScnPage(idtf: ScAddr) {
+  public async removeElementFromScnPage(idtf: ScAddr) {
     const action = new Action('action_remove_from_scn_page', this);
-    action.addArgs(idtf);
+    await action.addArgs(idtf);
     return action.initiate();
   }
 
   public async addElementToScnPage(idtf: ScAddr) {
     const action = new Action('action_add_to_scn_page', this);
-    action.addArgs(idtf);
+    await action.addArgs(idtf);
     return action.initiate();
   }
 
@@ -177,6 +183,131 @@ export class ScClientService {
     return (await this.scClient.templateSearch(template)).map((res) =>
       res.get(2)
     );
+  }
+
+  public async getNodeSystemIdtfByScAddr(addr: ScAddr): Promise<string> {
+    const systemIdtfTemplate: ScTemplate = new ScTemplate();
+    systemIdtfTemplate.tripleWithRelation(
+        addr,
+        ScType.EdgeDCommonVar,
+        ScType.LinkVar,
+        ScType.EdgeAccessVarPosPerm,
+        this.nrelSystemIdtfScAddr
+    );
+
+    const searchResult: ScTemplateResult = (await this.templateSearch(systemIdtfTemplate))[0];
+    const identifierLinkContents: ScLinkContent = (await this.scClient.getLinkContents([searchResult.get(2)]))[0];
+
+    return identifierLinkContents.data as string;
+  }
+
+  public async getNodeMainIdtfByScAddr(addr: ScAddr): Promise<string> {
+    const systemIdtfTemplate: ScTemplate = new ScTemplate();
+    systemIdtfTemplate.tripleWithRelation(
+        addr,
+        ScType.EdgeDCommonVar,
+        ScType.LinkVar,
+        ScType.EdgeAccessVarPosPerm,
+        this.nrelMainIdtfScAddr
+    );
+
+    const searchResult: ScTemplateResult = (await this.templateSearch(systemIdtfTemplate))[0];
+    if (!!searchResult) {
+        const identifierLinkContents: ScLinkContent = (await this.scClient.getLinkContents([searchResult.get(2)]))[0];
+        return identifierLinkContents.data as string;
+    } else {
+        return '';
+    }
+  }
+
+  public async getNodeSemanticVicinity(nodeAddr: ScAddr, depth: number = 1): Promise<SemanticVicinity> {
+    const semanticVicinity: SemanticVicinity = new SemanticVicinity();
+    if (depth === 0) {
+        return semanticVicinity;
+    }
+
+    const tripleTemplate: ScTemplate = new ScTemplate();
+    tripleTemplate.triple(nodeAddr, ScType.Unknown, ScType.Unknown);
+
+    const reverseTripleTemplate: ScTemplate = new ScTemplate();
+    reverseTripleTemplate.triple(ScType.Unknown, ScType.Unknown, nodeAddr);
+
+    const tripleWithRelationTemplate: ScTemplate = new ScTemplate();
+    tripleWithRelationTemplate.tripleWithRelation(nodeAddr, ScType.Unknown, ScType.Unknown, ScType.Unknown, ScType.Unknown);
+
+    const reverseTripleWithRelationTemplate: ScTemplate = new ScTemplate();
+    reverseTripleWithRelationTemplate.tripleWithRelation(ScType.Unknown, ScType.Unknown, nodeAddr, ScType.Unknown, ScType.Unknown);
+
+    const [triples, reverseTriples, triplesWithRelation, reverseTriplesWithRelation] = await Promise.all([
+        this.templateSearch(tripleTemplate),
+        this.templateSearch(reverseTripleTemplate),
+        this.templateSearch(tripleWithRelationTemplate),
+        this.templateSearch(reverseTripleWithRelationTemplate)
+    ]);
+
+    // vanilla cycles because using async/await
+    for (const triple of triples) {
+        const currTripleEdgeType: ScEdgeIdtf = await this.getScEdgeIdtf(triple.get(1));
+        const currTripleTarget: ScAddr = triple.get(2);
+        semanticVicinity.add(currTripleEdgeType, new SemanticVicinityByEdgeType({
+            edgeType: currTripleEdgeType,
+            targets: [new ScnTreeNode({
+                scAddr: currTripleTarget,
+                idtf: await this.getNodeMainIdtfByScAddr(currTripleTarget),
+                semanticVicinity: await this.getNodeSemanticVicinity(currTripleTarget, depth - 1)
+            })]
+        }));
+    }
+    for (const triple of reverseTriples) {
+        const currTripleEdgeType: ScEdgeIdtf = await this.getScEdgeIdtf(triple.get(1));
+        const currTripleSource: ScAddr = triple.get(0);
+        semanticVicinity.add(currTripleEdgeType, new SemanticVicinityByEdgeType({
+            edgeType: currTripleEdgeType,
+            sources: [new ScnTreeNode({
+                scAddr: currTripleSource,
+                idtf: await this.getNodeMainIdtfByScAddr(currTripleSource),
+                semanticVicinity: await this.getNodeSemanticVicinity(currTripleSource, depth - 1)
+            })]
+        }));
+    }
+    for (const tripleWithRelation of triplesWithRelation) {
+        const currTripleEdgeType: ScEdgeIdtf = await this.getScEdgeIdtf(tripleWithRelation.get(1));
+        const currTripleTarget: ScAddr = tripleWithRelation.get(2);
+        const currRelation: ScAddr = tripleWithRelation.get(4);
+        semanticVicinity.add(currTripleEdgeType, new SemanticVicinityByEdgeType({
+            edgeType: currTripleEdgeType,
+            relationScAddr: currRelation,
+            idtf: await this.getNodeMainIdtfByScAddr(currRelation),
+            targets: [new ScnTreeNode({
+                scAddr: currTripleTarget,
+                idtf: await this.getNodeMainIdtfByScAddr(currTripleTarget),
+                semanticVicinity: await this.getNodeSemanticVicinity(currTripleTarget, depth - 1)
+            })]
+        }));
+    }
+    for (const tripleWithRelation of reverseTriplesWithRelation) {
+        const currTripleEdgeType: ScEdgeIdtf = await this.getScEdgeIdtf(tripleWithRelation.get(1));
+        const currTripleSource: ScAddr = tripleWithRelation.get(0);
+        const currRelation: ScAddr = tripleWithRelation.get(4);
+        semanticVicinity.add(currTripleEdgeType, new SemanticVicinityByEdgeType({
+            edgeType: currTripleEdgeType,
+            relationScAddr: currRelation,
+            idtf: await this.getNodeMainIdtfByScAddr(currRelation),
+            sources: [new ScnTreeNode({
+                scAddr: currTripleSource,
+                idtf: await this.getNodeMainIdtfByScAddr(currTripleSource),
+                semanticVicinity: await this.getNodeSemanticVicinity(currTripleSource, depth - 1)
+            })]
+        }));
+    }
+
+    semanticVicinity.collapse();
+    
+    return semanticVicinity;
+  }
+
+  private async getScEdgeIdtf(edgeScAddr: ScAddr): Promise<ScEdgeIdtf> {
+    return this.scTypeToScEdgeIdtfMap.get((await this.scClient.checkElements([edgeScAddr]))[0].value)!;
   }
 }
 

@@ -1,6 +1,7 @@
 <scn-tree-item
+    *ngIf="!!currRoot"
     [isRoot]="true"
-    [scnTreeNode]="root"
+    [scnTreeNode]="currRoot"
     [openSubject]="openSubject"
     [editSubject]="editSubject"
     [deleteSubject]="deleteSubject"
