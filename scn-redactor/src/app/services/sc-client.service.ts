@@ -1,32 +1,339 @@
 import { Injectable } from '@angular/core';
 import { environment } from 'src/environments/environment';
-import { ScAddr, ScClient, ScTemplate, ScType } from 'src/ts-sc-client/src';
+import { nanoid } from 'nanoid';
+import {
+  ScClient,
+  ScAddr,
+  ScConstruction,
+  ScEventParams,
+  ScEventType,
+  ScTemplate,
+  ScType,
+} from 'ts-sc-client';
 
+type ScTemplateParamValue = string | ScAddr | ScType;
+type ScTemplateParam = [ScTemplateParamValue, string] | ScTemplateParamValue;
+
+export const snakeToCamelCase = <Str extends string>(str: Str): Str => {
+  return str.replace(/_(\w)/g, (_, p1) => p1.toUpperCase()) as Str;
+};
 @Injectable({
-    providedIn: 'root'
+  providedIn: 'root',
 })
 export class ScClientService {
-    private readonly scClient: ScClient;
+  private readonly scClient: ScClient;
+  private cache: Map<string, ScAddr> = new Map();
 
-    constructor() {
-        this.scClient = new ScClient(environment.webSocketAddress);
+  constructor() {
+    this.scClient = new ScClient(environment.webSocketAddress);
+  }
+
+  public async getLinkedEntities(entityScAddr: ScAddr): Promise<ScAddr[]> {
+    const linkedEntitiesScAddrs: ScAddr[] = [];
+
+    const template = new ScTemplate();
+    const conceptClass = (
+      await this.scClient.resolveKeynodes([
+        { id: 'concept_class', type: ScType.NodeConst },
+      ])
+    )['concept_class'];
+
+    template.triple(conceptClass, ScType.EdgeAccessVarPosPerm, ScType.NodeVar);
+
+    const res = await this.scClient.templateSearch(template);
+    console.log(conceptClass);
+    console.log(res); // []
+
+    return linkedEntitiesScAddrs;
+  }
+
+  public findKeynodes = async <K extends [string, ...string[]]>(
+    ...keynode: K
+  ) => this.scClient.findKeynodes(...keynode);
+  // stolen from ostis-ui-lib/utils because it's too cringe to import React as a peer dependency
+
+  private async searchNodeByIdentifier(
+    linkAddr: ScAddr,
+    identification: ScAddr
+  ) {
+    const nodeAlias = '_node';
+
+    const template = new ScTemplate();
+    template.tripleWithRelation(
+      [ScType.Unknown, nodeAlias],
+      ScType.EdgeDCommonVar,
+      linkAddr,
+      ScType.EdgeAccessVarPosPerm,
+      identification
+    );
+    const result = await this.scClient.templateSearch(template);
+    if (result.length) {
+      return result[0].get(nodeAlias);
     }
 
-    public async getLinkedEntities(entityScAddr: ScAddr): Promise<ScAddr[]> {
-        const linkedEntitiesScAddrs: ScAddr[] = [];
-    
-        const template = new ScTemplate();
-        const conceptClass = (await this.scClient.resolveKeynodes([{ id: "concept_class", type: ScType.NodeConst }]))["concept_class"];
-    
-        template.triple(
-            conceptClass,
-            ScType.EdgeAccessVarPosPerm,
-            ScType.NodeVar
+    return null;
+  }
+  // stolen from react-sc-web
+  public async searchAddrById(str: string) {
+    const [linkAddrs] = await this.scClient.getLinksByContents([str]);
+
+    const { nrelMainIdtf, nrelSystemIdentifier } = await this.findKeynodes(
+      'nrel_system_identifier',
+      'nrel_main_idtf'
+    );
+
+    if (!linkAddrs.length) return null;
+
+    const linkAddr = linkAddrs[0];
+    const systemAddr = await this.searchNodeByIdentifier(
+      linkAddr,
+      nrelSystemIdentifier
+    );
+
+    if (systemAddr) return systemAddr;
+
+    const mainAddr = await this.searchNodeByIdentifier(linkAddr, nrelMainIdtf);
+    if (mainAddr) return mainAddr;
+
+    return linkAddr;
+  }
+
+  public async templateGenerate(template: ScTemplate) {
+    return this.scClient.templateGenerate(template);
+  }
+
+  public async templateSearch(template: ScTemplate) {
+    return this.scClient.templateSearch(template);
+  }
+
+  public async getLinksByContents(contents: string[]) {
+    return this.scClient.getLinksByContents(contents);
+  }
+
+  public async createElements(construction: ScConstruction) {
+    return this.scClient.createElements(construction);
+  }
+
+  public async eventsCreate(params: ScEventParams) {
+    return this.scClient.eventsCreate(params);
+  }
+
+  public async eventsDestroy(eventId: number | number[]) {
+    return this.scClient.eventsDestroy(eventId);
+  }
+
+  public async newScnPage(makeCurrent: boolean = true, system_idtf?: string) {
+    const action = new Action('action_new_scn_page', this);
+    // has to be converted to string due to how agent interprets the makeCurrent argument
+    // i'm seriously dissapointed in typescript due to the amount of type gymnastics required for this to work
+    const args: [ScTemplateParam, ...ScTemplateParam[]] = system_idtf
+      ? [makeCurrent as unknown as string, system_idtf]
+      : [makeCurrent as unknown as string];
+
+    await action.addArgs(...args);
+    return action.initiate();
+  }
+
+  public async selectScnPage(idtf: string | ScAddr) {
+    const action = new Action('action_select_scn_page', this);
+    action.addArgs(idtf);
+    return action.initiate();
+  }
+
+  public async deleteScnPage(system_idtf: string) {
+    const action = new Action('action_delete_scn_page', this);
+    action.addArgs(system_idtf);
+    return action.initiate();
+  }
+
+  /**
+   * Creates a new SCn page with the `idtf` as the root node, adds its semantic neighborhood
+   * to the page and makes this page the current page.
+   *
+   * @param {string | ScAddr} idtf - The identifier of the SC element to use as the root node.
+   * @return {Promise<void>} A promise that resolves when the SCn page is successfully opened.
+   */
+  public async openScnPage(idtf: string | ScAddr) {
+    const action = new Action('action_open_scn_page', this);
+    action.addArgs(idtf);
+    return action.initiate();
+  }
+
+  public removeElementFromScnPage(idtf: ScAddr) {
+    const action = new Action('action_remove_from_scn_page', this);
+    action.addArgs(idtf);
+    return action.initiate();
+  }
+
+  public async addElementToScnPage(idtf: ScAddr) {
+    const action = new Action('action_add_to_scn_page', this);
+    action.addArgs(idtf);
+    return action.initiate();
+  }
+
+  public async getPageContents(idtf: ScAddr) {
+    const template = new ScTemplate();
+    template.triple(idtf, ScType.EdgeAccessVarPosPerm, ScType.Unknown);
+    return (await this.scClient.templateSearch(template)).map((res) =>
+      res.get(2)
+    );
+  }
+}
+
+export class Action {
+  public actionNodeAlias: string;
+
+  private action: string;
+  private template: ScTemplate;
+  private actionNodeInited: Promise<void>;
+  private onFirstTripleAdded: () => void;
+  private scClientService: ScClientService;
+
+  constructor(action: string, scClientService: ScClientService) {
+    this.scClientService = scClientService;
+    this.actionNodeAlias = nanoid(10);
+    this.action = action;
+    this.template = new ScTemplate();
+
+    this.onFirstTripleAdded = () => undefined;
+    this.actionNodeInited = new Promise(
+      (resolve) => (this.onFirstTripleAdded = resolve)
+    );
+
+    this.addFirstTripple();
+  }
+
+  private addFirstTripple = async () => {
+    const { question } = await this.scClientService.findKeynodes('question');
+    this.onFirstTripleAdded();
+    this.template.triple(question, ScType.EdgeAccessVarPosPerm, [
+      ScType.NodeVar,
+      this.actionNodeAlias,
+    ]);
+  };
+
+  private initiateAction = async (actionNode: ScAddr) => {
+    const { questionInitiated } = await this.scClientService.findKeynodes(
+      'question_initiated'
+    );
+
+    const construction = new ScConstruction();
+    construction.createEdge(
+      ScType.EdgeAccessConstPosPerm,
+      questionInitiated,
+      actionNode
+    );
+    this.scClientService.createElements(construction);
+  };
+
+  private subscribeToAnswer = async (
+    actionNode: ScAddr,
+    onResponse: () => void
+  ) => {
+    const { questionFinished } = await this.scClientService.findKeynodes(
+      'question_finished'
+    );
+    const onActionFinished = (
+      _subscibedAddr: ScAddr,
+      _arc: ScAddr,
+      anotherAddr: ScAddr,
+      eventId: number
+    ) => {
+      if (anotherAddr.isValid() && anotherAddr.equal(questionFinished)) {
+        this.scClientService.eventsDestroy(eventId);
+        onResponse();
+      }
+    };
+
+    const eventParams = new ScEventParams(
+      actionNode,
+      ScEventType.AddIngoingEdge,
+      onActionFinished
+    );
+
+    this.scClientService.eventsCreate(eventParams);
+  };
+
+  private findResultCircuit = async (actionNode: ScAddr) => {
+    const { nrelAnswer } = await this.scClientService.findKeynodes(
+      'nrel_answer'
+    );
+
+    const circuitAlias = '_circuit';
+    const template = new ScTemplate();
+
+    template.tripleWithRelation(
+      actionNode,
+      ScType.EdgeDCommonVar,
+      [ScType.NodeVarStruct, circuitAlias],
+      ScType.EdgeAccessVarPosPerm,
+      nrelAnswer
+    );
+    const result = await this.scClientService.templateSearch(template);
+
+    if (result.length) return result[0].get(circuitAlias);
+    return null;
+  };
+
+  private generateAction = async () => {
+    const generationResult = await this.scClientService.templateGenerate(
+      this.template
+    );
+
+    if (generationResult && generationResult.size > 0) {
+      return generationResult.get(this.actionNodeAlias);
+    }
+    return null;
+  };
+
+  public addToTemplate = async (
+    cb: (template: ScTemplate) => void | Promise<void>
+  ) => {
+    await this.actionNodeInited;
+    await cb(this.template);
+  };
+
+  public addArgs = async (...args: [ScTemplateParam, ...ScTemplateParam[]]) => {
+    await this.actionNodeInited;
+    const rrelBaseKeynodes = args.map((_, ind) => `rrel_${ind + 1}`) as [
+      string,
+      ...string[]
+    ];
+    const rrelKeynodes = await this.scClientService.findKeynodes(
+      ...rrelBaseKeynodes
+    );
+
+    args.forEach((rrel, ind) => {
+      this.template.tripleWithRelation(
+        this.actionNodeAlias,
+        ScType.EdgeAccessVarPosPerm,
+        rrel,
+        ScType.EdgeAccessVarPosPerm,
+        rrelKeynodes[`rrel${ind + 1}`]
+      );
+    });
+  };
+
+  public initiate = () => {
+    return new Promise<ScAddr | null>((resolve) => {
+      this.scClientService.findKeynodes(this.action).then(async (keynodes) => {
+        await this.actionNodeInited;
+
+        this.template.triple(
+          keynodes[snakeToCamelCase(this.action)],
+          ScType.EdgeAccessVarPosPerm,
+          this.actionNodeAlias
         );
-    
-        const res = await this.scClient.templateSearch(template);
-        console.log(res); // []
 
-        return linkedEntitiesScAddrs;
-    }
+        const actionNode = await this.generateAction();
+        if (!actionNode) return resolve(null);
+
+        const onResponse = async () => {
+          resolve(await this.findResultCircuit(actionNode));
+        };
+        await this.subscribeToAnswer(actionNode, onResponse);
+        await this.initiateAction(actionNode);
+      });
+    });
+  };
 }
