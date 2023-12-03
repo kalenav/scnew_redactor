@@ -14,6 +14,22 @@
             class="link-contents"
         ></div>
     </ng-template>
+
+    <mat-icon
+        *ngIf="isRoot; else deleteButton"
+        class="entity-edit-button"
+        (click)="onEditRequested()"
+    >
+        edit
+    </mat-icon>
+    <ng-template #deleteButton>
+        <mat-icon
+            class="entity-delete-button"
+            (click)="onDeleteRequested()"
+        >
+            delete
+        </mat-icon>
+    </ng-template>
 </div>
 
 <ng-container *ngIf="{
@@ -182,39 +198,72 @@
 <ng-template #neighborGroup let-context>
     <ng-container *ngIf="context.semanticVicinity.targets.length">
         <div class="group-header">
-            <span class="group-symbol">{{ context.groupSymbols.from }}</span>
-            <span
+            <div class="group-symbol">{{ context.groupSymbols.from }}</div>
+            <div
                 *ngIf="!!context.semanticVicinity.idtf.length"
                 class="entity-identifier"
-                (click)="onEdgeIdentifierClick(context.semanticVicinity.idtf)"
+                (click)="onEdgeIdentifierClick(context.semanticVicinity.relationScAddr)"
             >
                 {{ context.semanticVicinity.idtf }}
-            </span>
-            <span>:</span>
+            </div>
+            <div>:</div>
+            <div class="group-controls-container">
+                <mat-icon
+                    class="group-add-entity-button"
+                    (click)="onCreateRequested({
+                        from: scnTreeNode.scAddr,
+                        edgeType: context.semanticVicinity.edgeType,
+                        relationScAddr: context.semanticVicinity.relationScAddr
+                    })"
+                >
+                    add
+                </mat-icon>
+            </div>
         </div>
         <div class="group" *ngFor="let neighbor of context.semanticVicinity.targets">
             <scn-tree-item
                 [scnTreeNode]="neighbor"
                 [hasBullet]="context.semanticVicinity.targets.length > 1"
+                [openSubject]="openSubject"
+                [editSubject]="editSubject"
+                [deleteSubject]="deleteSubject"
+                [createSubject]="createSubject"
             ></scn-tree-item>
         </div>
     </ng-container>
     <ng-container *ngIf="context.semanticVicinity.sources.length">
         <div class="group-header">
-            <span class="group-symbol">{{ context.groupSymbols.to }}</span>
-            <span
+            <div class="group-symbol">{{ context.groupSymbols.to }}</div>
+            <div
                 *ngIf="!!context.semanticVicinity.idtf.length"
                 class="entity-identifier"
-                (click)="onEdgeIdentifierClick(context.semanticVicinity.idtf)"
+                (click)="onEdgeIdentifierClick(context.semanticVicinity.relationScAddr)"
             >
                 {{ context.semanticVicinity.idtf }}
-            </span>
-            <span>:</span>
+            </div>
+            <div>:</div>
+            <div class="group-controls-container">
+                <mat-icon
+                    class="group-add-entity-button"
+                    (click)="onCreateRequested({
+                        from: scnTreeNode.scAddr,
+                        edgeType: context.semanticVicinity.edgeType,
+                        relationScAddr: context.semanticVicinity.relationScAddr
+                    })"
+                >
+                    add
+                </mat-icon>
+            </div>
         </div>
+
         <div class="group" *ngFor="let neighbor of context.semanticVicinity.sources">
             <scn-tree-item
                 [scnTreeNode]="neighbor"
                 [hasBullet]="context.semanticVicinity.sources.length > 1"
+                [openSubject]="openSubject"
+                [editSubject]="editSubject"
+                [deleteSubject]="deleteSubject"
+                [createSubject]="createSubject"
             ></scn-tree-item>
         </div>
     </ng-container>

@@ -1,6 +1,9 @@
-import { Component, ElementRef, Input, ViewChild } from '@angular/core';
+import { Component, ElementRef, EventEmitter, Input, Output, ViewChild } from '@angular/core';
+import { Subject } from 'rxjs';
 import { ScnTreeNode, SemanticVicinityByEdgeType } from 'src/app/model/scn-tree';
 import { ScEdgeIdtf } from 'src/app/shared/sc-edge-idtf.enum';
+import { ScAddr } from 'src/ts-sc-client/src';
+import { CreateNodeParams } from '../scn-editor/scn-editor.component';
 
 @Component({
     selector: 'scn-tree-item',
@@ -11,6 +14,10 @@ export class ScnTreeItemComponent {
     @Input({ required: true }) public scnTreeNode!: ScnTreeNode;
     @Input() public isRoot: boolean = false;
     @Input() public hasBullet: boolean = false;
+    @Input({ required: true }) public openSubject!: Subject<ScAddr>;
+    @Input({ required: true }) public editSubject!: Subject<ScAddr>;
+    @Input({ required: true }) public deleteSubject!: Subject<ScAddr>;
+    @Input({ required: true }) public createSubject!: Subject<CreateNodeParams>
 
     @ViewChild('linkContentsContainer') public set setter(content: ElementRef | undefined) {
         if (content !== undefined) {
@@ -44,10 +51,22 @@ export class ScnTreeItemComponent {
     }
 
     public onNodeIdentifierClick(): void {
-        alert(`opening ${this.scnTreeNode.idtf}`);
+        this.openSubject.next(this.scnTreeNode.scAddr);
     }
 
-    public onEdgeIdentifierClick(arcIdtf: string): void {
-        alert(`opening ${arcIdtf}`);
+    public onEdgeIdentifierClick(scAddr: ScAddr): void {
+        this.openSubject.next(scAddr);
+    }
+
+    public onEditRequested(): void {
+        this.editSubject.next(this.scnTreeNode.scAddr);
+    }
+
+    public onDeleteRequested(): void {
+        this.deleteSubject.next(this.scnTreeNode.scAddr);
+    }
+
+    public onCreateRequested(params: CreateNodeParams): void {
+        this.createSubject.next(params);
     }
 }

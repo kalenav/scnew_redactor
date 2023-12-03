@@ -14,16 +14,63 @@
         }
     }
 
-    .link-contents {
-        width: fit-content;
-        padding: 5px;
-        margin: 2px;
-        border: solid 1px #cccccc;
-        background: url(../../../../assets/images/content_corner.png) 0 0 no-repeat #fafafa;
+    .tree-node-content {
+        display: flex;
+        align-items: center;
+        gap: 5px;
+
+        .link-contents {
+            width: fit-content;
+            padding: 5px;
+            margin: 2px;
+            border: solid 1px #cccccc;
+            background: url(../../../../assets/images/content_corner.png) 0 0 no-repeat #fafafa;
+        }
+
+        .entity-edit-button, .entity-delete-button {
+            opacity: 0;
+            transition-duration: 0.25s;
+            cursor: pointer;
+        }
+
+        &:hover {
+            .entity-edit-button, .entity-delete-button {
+                opacity: 1;
+            }
+        }
     }
 
     .group {
+        display: flex;
         padding-left: 20px;
+
+        &-symbol {
+            width: 20px;
+        }
+
+        &-header {
+            display: flex;
+            align-items: center;
+            width: fit-content;
+
+            .group-add-entity-button {
+                width: 26px;
+                height: 26px;
+                transform: scale(0.8);
+                border: solid black 1px;
+                border-radius: 50%;
+                margin-left: 15px;
+                opacity: 0;
+                transition-duration: 0.25s;
+                cursor: pointer;
+            }
+
+            &:hover {
+                .group-add-entity-button {
+                    opacity: 1;
+                }
+            }
+        }
     }
 
     .group, .group-header {
