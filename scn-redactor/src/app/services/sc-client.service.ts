@@ -28,8 +28,6 @@ export class ScClientService {
   private cache: Map<string, ScAddr> = new Map();
 
   private readonly scClient: ScClient;
-  private readonly nrelSystemIdtfScAddr: ScAddr = new ScAddr(3);
-  private readonly nrelMainIdtfScAddr: ScAddr = new ScAddr(743);
   private readonly scTypeToScEdgeIdtfMap: Map<number, ScEdgeIdtf> = new Map<number, ScEdgeIdtf>([
     [ScType.EdgeAccessConstFuzPerm.value, ScEdgeIdtf.EdgeAccessConstFuzPerm],
     [ScType.EdgeAccessConstFuzTemp.value, ScEdgeIdtf.EdgeAccessConstFuzTemp],
@@ -51,6 +49,13 @@ export class ScClientService {
 
   constructor() {
     this.scClient = new ScClient(environment.webSocketAddress);
+    // const t = new ScTemplate();
+    // t.tripleWithRelation(ScType.Unknown, ScType.Unknown, ScType.Link, ScType.EdgeAccessVarPosPerm, new ScAddr(3));
+    // this.templateSearch(t).then(async (sr) => {
+    //     for (const r of sr) {
+    //         console.log(await this.getLinkContents(r.get(2)), r.get(0).value);
+    //     }
+    // });
   }
 
   public findKeynodes = async <K extends [string, ...string[]]>(
@@ -185,39 +190,36 @@ export class ScClientService {
     );
   }
 
-  public async getNodeSystemIdtfByScAddr(addr: ScAddr): Promise<string> {
+  public async deleteScElement(scAddr: ScAddr): Promise<boolean> {
+    return this.scClient.deleteElements([scAddr]);
+  } 
+
+  public async getNodeSystemIdtfByScAddr(addr: ScAddr, placeholder: string = '...'): Promise<string> {
     const systemIdtfTemplate: ScTemplate = new ScTemplate();
     systemIdtfTemplate.tripleWithRelation(
         addr,
-        ScType.EdgeDCommonVar,
-        ScType.LinkVar,
+        ScType.EdgeDCommon,
+        ScType.Link,
         ScType.EdgeAccessVarPosPerm,
-        this.nrelSystemIdtfScAddr
+        new ScAddr(3)
     );
 
     const searchResult: ScTemplateResult = (await this.templateSearch(systemIdtfTemplate))[0];
-    const identifierLinkContents: ScLinkContent = (await this.scClient.getLinkContents([searchResult.get(2)]))[0];
-
-    return identifierLinkContents.data as string;
+    return searchResult ? await this.getLinkContents(searchResult.get(2)) : placeholder;
   }
 
-  public async getNodeMainIdtfByScAddr(addr: ScAddr): Promise<string> {
-    const systemIdtfTemplate: ScTemplate = new ScTemplate();
-    systemIdtfTemplate.tripleWithRelation(
+  public async getNodeMainIdtfByScAddr(addr: ScAddr, placeholder: string = '...'): Promise<string> {
+    const mainIdtfTemplate: ScTemplate = new ScTemplate();
+    mainIdtfTemplate.tripleWithRelation(
         addr,
-        ScType.EdgeDCommonVar,
-        ScType.LinkVar,
+        ScType.EdgeDCommon,
+        ScType.Link,
         ScType.EdgeAccessVarPosPerm,
-        this.nrelMainIdtfScAddr
+        new ScAddr(743)
     );
 
-    const searchResult: ScTemplateResult = (await this.templateSearch(systemIdtfTemplate))[0];
-    if (!!searchResult) {
-        const identifierLinkContents: ScLinkContent = (await this.scClient.getLinkContents([searchResult.get(2)]))[0];
-        return identifierLinkContents.data as string;
-    } else {
-        return '';
-    }
+    const searchResult: ScTemplateResult = (await this.templateSearch(mainIdtfTemplate))[0];
+    return searchResult ? await this.getLinkContents(searchResult.get(2)) : placeholder;
   }
 
   public async getNodeSemanticVicinity(nodeAddr: ScAddr, depth: number = 1): Promise<SemanticVicinity> {
@@ -232,82 +234,70 @@ export class ScClientService {
     const reverseTripleTemplate: ScTemplate = new ScTemplate();
     reverseTripleTemplate.triple(ScType.Unknown, ScType.Unknown, nodeAddr);
 
-    const tripleWithRelationTemplate: ScTemplate = new ScTemplate();
-    tripleWithRelationTemplate.tripleWithRelation(nodeAddr, ScType.Unknown, ScType.Unknown, ScType.Unknown, ScType.Unknown);
-
-    const reverseTripleWithRelationTemplate: ScTemplate = new ScTemplate();
-    reverseTripleWithRelationTemplate.tripleWithRelation(ScType.Unknown, ScType.Unknown, nodeAddr, ScType.Unknown, ScType.Unknown);
-
-    const [triples, reverseTriples, triplesWithRelation, reverseTriplesWithRelation] = await Promise.all([
+    const [triples, reverseTriples] = await Promise.all([
         this.templateSearch(tripleTemplate),
-        this.templateSearch(reverseTripleTemplate),
-        this.templateSearch(tripleWithRelationTemplate),
-        this.templateSearch(reverseTripleWithRelationTemplate)
+        this.templateSearch(reverseTripleTemplate)
     ]);
 
-    // vanilla cycles because using async/await
+    (await this.getEdgewiseSemanticVicinities(triples, true, depth)).forEach((vicinity: SemanticVicinityByEdgeType) => {
+        semanticVicinity.add(vicinity.edgeType, vicinity);
+    });
+    (await this.getEdgewiseSemanticVicinities(reverseTriples, false, depth)).forEach((vicinity: SemanticVicinityByEdgeType) => {
+        semanticVicinity.add(vicinity.edgeType, vicinity);
+    });
+
+    semanticVicinity.collapse();
+
+    return semanticVicinity;
+  }
+
+  private async getEdgewiseSemanticVicinities(triples: ScTemplateResult[], rootIsSource: boolean, depth: number): Promise<SemanticVicinityByEdgeType[]> {
+    const vicinities: SemanticVicinityByEdgeType[] = [];
+    // vanilla cycle because using async/await
     for (const triple of triples) {
-        const currTripleEdgeType: ScEdgeIdtf = await this.getScEdgeIdtf(triple.get(1));
-        const currTripleTarget: ScAddr = triple.get(2);
-        semanticVicinity.add(currTripleEdgeType, new SemanticVicinityByEdgeType({
-            edgeType: currTripleEdgeType,
-            targets: [new ScnTreeNode({
-                scAddr: currTripleTarget,
-                idtf: await this.getNodeMainIdtfByScAddr(currTripleTarget),
-                semanticVicinity: await this.getNodeSemanticVicinity(currTripleTarget, depth - 1)
-            })]
-        }));
-    }
-    for (const triple of reverseTriples) {
-        const currTripleEdgeType: ScEdgeIdtf = await this.getScEdgeIdtf(triple.get(1));
-        const currTripleSource: ScAddr = triple.get(0);
-        semanticVicinity.add(currTripleEdgeType, new SemanticVicinityByEdgeType({
-            edgeType: currTripleEdgeType,
-            sources: [new ScnTreeNode({
-                scAddr: currTripleSource,
-                idtf: await this.getNodeMainIdtfByScAddr(currTripleSource),
-                semanticVicinity: await this.getNodeSemanticVicinity(currTripleSource, depth - 1)
-            })]
-        }));
-    }
-    for (const tripleWithRelation of triplesWithRelation) {
-        const currTripleEdgeType: ScEdgeIdtf = await this.getScEdgeIdtf(tripleWithRelation.get(1));
-        const currTripleTarget: ScAddr = tripleWithRelation.get(2);
-        const currRelation: ScAddr = tripleWithRelation.get(4);
-        semanticVicinity.add(currTripleEdgeType, new SemanticVicinityByEdgeType({
-            edgeType: currTripleEdgeType,
-            relationScAddr: currRelation,
-            idtf: await this.getNodeMainIdtfByScAddr(currRelation),
-            targets: [new ScnTreeNode({
-                scAddr: currTripleTarget,
-                idtf: await this.getNodeMainIdtfByScAddr(currTripleTarget),
-                semanticVicinity: await this.getNodeSemanticVicinity(currTripleTarget, depth - 1)
-            })]
-        }));
-    }
-    for (const tripleWithRelation of reverseTriplesWithRelation) {
-        const currTripleEdgeType: ScEdgeIdtf = await this.getScEdgeIdtf(tripleWithRelation.get(1));
-        const currTripleSource: ScAddr = tripleWithRelation.get(0);
-        const currRelation: ScAddr = tripleWithRelation.get(4);
-        semanticVicinity.add(currTripleEdgeType, new SemanticVicinityByEdgeType({
-            edgeType: currTripleEdgeType,
-            relationScAddr: currRelation,
-            idtf: await this.getNodeMainIdtfByScAddr(currRelation),
-            sources: [new ScnTreeNode({
-                scAddr: currTripleSource,
-                idtf: await this.getNodeMainIdtfByScAddr(currTripleSource),
-                semanticVicinity: await this.getNodeSemanticVicinity(currTripleSource, depth - 1)
-            })]
+        const currNeighbor: ScAddr = triple.get(rootIsSource ? 2 : 0);
+        const currNeighborIsLink: boolean = (await this.getScElementType(currNeighbor)).isLink();
+
+        const currEdgeType: ScEdgeIdtf = await this.getScEdgeIdtf(triple.get(1));
+        const currEdgeParentRelation: ScAddr | null = await this.getEdgeParentRelation(triple.get(1));
+        
+        const currNeighborTreeNode: ScnTreeNode = new ScnTreeNode({
+            scAddr: currNeighbor,
+            idtf: await this.getNodeMainIdtfByScAddr(currNeighbor),
+            semanticVicinity: await this.getNodeSemanticVicinity(currNeighbor, depth - 1),
+            isLink: currNeighborIsLink,
+            htmlContents: currNeighborIsLink ? await this.getLinkContents(currNeighbor) : ''
+        });
+
+        vicinities.push(new SemanticVicinityByEdgeType({
+            edgeType: currEdgeType,
+            idtf: currEdgeParentRelation ? await this.getNodeMainIdtfByScAddr(currEdgeParentRelation, '') : '',
+            relationScAddr: currEdgeParentRelation,
+            sources: rootIsSource ? [] : [currNeighborTreeNode],
+            targets: rootIsSource ? [currNeighborTreeNode] : []
         }));
     }
 
-    semanticVicinity.collapse();
-    
-    return semanticVicinity;
+    return vicinities;
   }
 
   private async getScEdgeIdtf(edgeScAddr: ScAddr): Promise<ScEdgeIdtf> {
     return this.scTypeToScEdgeIdtfMap.get((await this.scClient.checkElements([edgeScAddr]))[0].value)!;
+  }
+
+  private async getLinkContents(scAddr: ScAddr): Promise<string> {
+    return (await this.scClient.getLinkContents([scAddr]))[0].data as string;
+  }
+
+  private async getScElementType(scAddr: ScAddr): Promise<ScType> {
+    return (await this.scClient.checkElements([scAddr]))[0];
+  }
+
+  private async getEdgeParentRelation(edgeScAddr: ScAddr): Promise<ScAddr | null> {
+    const template: ScTemplate = new ScTemplate();
+    template.triple(ScType.NodeVarNoRole, ScType.EdgeAccessVarPosPerm, edgeScAddr);
+    template.triple(ScType.NodeVarRole, ScType.EdgeAccessVarPosPerm, edgeScAddr);
+    return (await this.templateSearch(template))[0]?.get(0) ?? null;
   }
 }
 

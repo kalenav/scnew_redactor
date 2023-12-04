@@ -80,7 +80,9 @@ export class SemanticVicinity {
 
             const allRelationsForCurrEdgeType: [null, ...RelationInfo[]] = [null];
             this.semanticVicinity[assertedEdgeType].forEach((vicinity: SemanticVicinityByEdgeType) => {
-                if (!allRelationsForCurrEdgeType.some((relationInfo: RelationInfo | null) => relationInfo?.scAddr === vicinity.relationScAddr)) {
+                if (!!vicinity.relationScAddr
+                    && !allRelationsForCurrEdgeType.some((relationInfo: RelationInfo | null) => relationInfo?.scAddr === vicinity.relationScAddr)
+                ) {
                     allRelationsForCurrEdgeType.push({ scAddr: vicinity.relationScAddr!, idtf: vicinity.idtf });
                 }
             });
@@ -89,11 +91,12 @@ export class SemanticVicinity {
             this.semanticVicinity[assertedEdgeType] = allRelationsForCurrEdgeType.map((relationInfo: RelationInfo | null) => {
                 const currVicinity: SemanticVicinityByEdgeType = new SemanticVicinityByEdgeType({
                     relationScAddr: relationInfo?.scAddr,
-                    idtf: relationInfo?.idtf
+                    idtf: relationInfo?.idtf,
+                    edgeType: assertedEdgeType
                 });
 
                 vicinitiesSnapshot
-                    .filter((vicinity: SemanticVicinityByEdgeType) => vicinity.relationScAddr === relationInfo?.scAddr ?? null)
+                    .filter((vicinity: SemanticVicinityByEdgeType) => vicinity.relationScAddr === (relationInfo?.scAddr ?? null))
                     .forEach((vicinity: SemanticVicinityByEdgeType) => { currVicinity.merge(vicinity) });
 
                 return currVicinity;

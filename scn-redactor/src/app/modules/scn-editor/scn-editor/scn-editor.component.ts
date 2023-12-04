@@ -1,6 +1,5 @@
 import { Component, OnInit } from '@angular/core';
-import { ScnMockTree } from 'src/app/mock/scn-tree.mock';
-import { ScnTree, ScnTreeNode, SemanticVicinity } from 'src/app/model/scn-tree';
+import { ScnTree, ScnTreeNode } from 'src/app/model/scn-tree';
 import { ScClientService } from 'src/app/services/sc-client.service';
 import { ScAddr } from 'ts-sc-client';
 import { Subject } from 'rxjs';
@@ -18,7 +17,7 @@ export interface CreateNodeParams {
     styleUrls: ['./scn-editor.component.scss']
 })
 export class ScnEditorComponent implements OnInit {
-    public currRoot!: ScnTreeNode;
+    public currRoot: ScnTreeNode | null = null;
 
     public readonly openSubject: Subject<ScAddr> = new Subject<ScAddr>();
     public readonly editSubject: Subject<ScAddr> = new Subject<ScAddr>();
@@ -27,7 +26,6 @@ export class ScnEditorComponent implements OnInit {
 
     private readonly defaultDepth: number = 1;
     private readonly defaultRoot: ScAddr = new ScAddr(16103); // concept_user_interface_component
-    private readonly scnPageScAddr: ScAddr = new ScAddr(131101);
 
     private readonly createdScnPages: ScAddr[] = [];
 
@@ -37,7 +35,8 @@ export class ScnEditorComponent implements OnInit {
 
     ngOnInit(): void {
         this.openSubject.subscribe((scAddr: ScAddr) => {
-            console.log(`opening ${scAddr.value}`);
+            this.openNodeSemanticVicinity(scAddr);
+            this.client.openScnPage(scAddr);
         });
 
         this.createSubject.subscribe((params: CreateNodeParams) => {
@@ -49,12 +48,22 @@ export class ScnEditorComponent implements OnInit {
         });
 
         this.deleteSubject.subscribe((scAddr: ScAddr) => {
-            console.log(`deleting ${scAddr.value}`);
+            if (confirm(`Are you sure you want to delete node ${scAddr.value}?`)) {
+                // i'll wait before i'm sure that the kb can be recovered in case of catastrophic failure
+                // this.client.deleteScElement(scAddr);
+                this.client.removeElementFromScnPage(scAddr);
+                this.openNodeSemanticVicinity(this.currRoot!.scAddr);
+            }
         });
     }
 
+    private async openNodeSemanticVicinity(scAddr: ScAddr): Promise<void> {
+        this.currRoot = null;
+        this.setCurrRoot(await this.buildScnTreeFromRoot(scAddr));
+    }
+
     private async initialize(): Promise<void> {
-        this.setCurrRoot(await this.buildScnTreeFromRoot(this.defaultRoot));
+        this.openNodeSemanticVicinity(this.defaultRoot);
     }
 
     private async setCurrRoot(tree: ScnTree): Promise<void> {
@@ -69,9 +78,5 @@ export class ScnEditorComponent implements OnInit {
         });
 
         return new ScnTree(rootNode);
-    }
-
-    private async test(): Promise<void> {
-        console.log(await this.client.getNodeSemanticVicinity(this.defaultRoot));
     }
 }
