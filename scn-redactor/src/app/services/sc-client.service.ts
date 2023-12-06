@@ -9,8 +9,7 @@ import {
   ScEventType,
   ScTemplate,
   ScType,
-  ScTemplateResult,
-  ScLinkContent
+  ScTemplateResult
 } from 'ts-sc-client';
 import { ScEdgeIdtf } from '../shared/sc-edge-idtf.enum';
 import { ScnTreeNode, SemanticVicinity, SemanticVicinityByEdgeType } from '../model/scn-tree';
@@ -25,7 +24,6 @@ export const snakeToCamelCase = <Str extends string>(str: Str): Str => {
   providedIn: 'root',
 })
 export class ScClientService {
-  private cache: Map<string, ScAddr> = new Map();
 
   private readonly scClient: ScClient;
   private readonly scTypeToScEdgeIdtfMap: Map<number, ScEdgeIdtf> = new Map<number, ScEdgeIdtf>([
@@ -182,44 +180,49 @@ export class ScClientService {
     return action.initiate();
   }
 
-  public async getPageContents(idtf: ScAddr) {
-    const template = new ScTemplate();
-    template.triple(idtf, ScType.EdgeAccessVarPosPerm, ScType.Unknown);
-    return (await this.scClient.templateSearch(template)).map((res) =>
-      res.get(2)
-    );
+  public async getPageContents(idtf: ScAddr): Promise<{ nodes: ScAddr[], arcs: [ScAddr, ScAddr, ScAddr][]}> {
+    const elements_template = new ScTemplate();
+    elements_template.triple(idtf, ScType.EdgeAccessVarPosPerm, ScType.NodeVar);
+    const arcs_template = new ScTemplate();
+    arcs_template.tripleWithRelation([ScType.Unknown, "_el1"],[ScType.Unknown, "_arc"],[ScType.Unknown, "_el2"],ScType.EdgeAccessVarPosPerm,idtf);
+    const page_elements = this.scClient.templateSearch(elements_template)
+    const page_arcs = this.scClient.templateSearch(arcs_template)
+    return { nodes: (await page_elements).map((el) => el.get(2)), arcs: (await page_arcs).map((el) => [el.get(0), el.get(1), el.get(2)])};
   }
 
-  public async deleteScElement(scAddr: ScAddr): Promise<boolean> {
-    return this.scClient.deleteElements([scAddr]);
-  } 
+  public async deleteScElements(...scAddr: ScAddr[]): Promise<boolean> {
+    return this.scClient.deleteElements(scAddr);
+  }
 
-  public async getNodeSystemIdtfByScAddr(addr: ScAddr, placeholder: string = '...'): Promise<string> {
+  public async getNodeSystemIdtfByScAddr(addr: ScAddr): Promise<string | null> {
+    const { nrelSystemIdentifier } = await this.findKeynodes('nrel_system_identifier');
     const systemIdtfTemplate: ScTemplate = new ScTemplate();
     systemIdtfTemplate.tripleWithRelation(
         addr,
         ScType.EdgeDCommon,
         ScType.Link,
         ScType.EdgeAccessVarPosPerm,
-        new ScAddr(3)
+        nrelSystemIdentifier
     );
 
     const searchResult: ScTemplateResult = (await this.templateSearch(systemIdtfTemplate))[0];
-    return searchResult ? await this.getLinkContents(searchResult.get(2)) : placeholder;
+    return searchResult ? await this.getLinkContents(searchResult.get(2)) : null;
   }
 
-  public async getNodeMainIdtfByScAddr(addr: ScAddr, placeholder: string = '...'): Promise<string> {
+  public async getNodeMainIdtfByScAddr(addr: ScAddr): Promise<string | null> {
+    const { nrelMainIdtf } = await this.findKeynodes('nrel_main_idtf')
     const mainIdtfTemplate: ScTemplate = new ScTemplate();
     mainIdtfTemplate.tripleWithRelation(
         addr,
-        ScType.EdgeDCommon,
-        ScType.Link,
+        ScType.EdgeDCommonVar,
+        ScType.LinkVar,
         ScType.EdgeAccessVarPosPerm,
-        new ScAddr(743)
+        nrelMainIdtf
     );
 
     const searchResult: ScTemplateResult = (await this.templateSearch(mainIdtfTemplate))[0];
-    return searchResult ? await this.getLinkContents(searchResult.get(2)) : placeholder;
+    const idtf = searchResult ? await this.getLinkContents(searchResult.get(2)) : null
+    return idtf;
   }
 
   public async getNodeSemanticVicinity(nodeAddr: ScAddr, depth: number = 1): Promise<SemanticVicinity> {
@@ -260,10 +263,9 @@ export class ScClientService {
 
         const currEdgeType: ScEdgeIdtf = await this.getScEdgeIdtf(triple.get(1));
         const currEdgeParentRelation: ScAddr | null = await this.getEdgeParentRelation(triple.get(1));
-        
         const currNeighborTreeNode: ScnTreeNode = new ScnTreeNode({
             scAddr: currNeighbor,
-            idtf: await this.getNodeMainIdtfByScAddr(currNeighbor),
+            idtf: await this.getNodeMainIdtfByScAddr(currNeighbor) ?? await this.getNodeSystemIdtfByScAddr(currNeighbor) ?? '...',
             semanticVicinity: await this.getNodeSemanticVicinity(currNeighbor, depth - 1),
             isLink: currNeighborIsLink,
             htmlContents: currNeighborIsLink ? await this.getLinkContents(currNeighbor) : ''
@@ -271,7 +273,7 @@ export class ScClientService {
 
         vicinities.push(new SemanticVicinityByEdgeType({
             edgeType: currEdgeType,
-            idtf: currEdgeParentRelation ? await this.getNodeMainIdtfByScAddr(currEdgeParentRelation, '') : '',
+            idtf: currEdgeParentRelation ? await this.getNodeMainIdtfByScAddr(currEdgeParentRelation) ?? await this.getNodeSystemIdtfByScAddr(currEdgeParentRelation) ?? 'unknown identifier' : 'unknown relation',
             relationScAddr: currEdgeParentRelation,
             sources: rootIsSource ? [] : [currNeighborTreeNode],
             targets: rootIsSource ? [currNeighborTreeNode] : []
@@ -294,10 +296,16 @@ export class ScClientService {
   }
 
   private async getEdgeParentRelation(edgeScAddr: ScAddr): Promise<ScAddr | null> {
-    const template: ScTemplate = new ScTemplate();
-    template.triple(ScType.NodeVarNoRole, ScType.EdgeAccessVarPosPerm, edgeScAddr);
-    template.triple(ScType.NodeVarRole, ScType.EdgeAccessVarPosPerm, edgeScAddr);
-    return (await this.templateSearch(template))[0]?.get(0) ?? null;
+    const template_norole: ScTemplate = new ScTemplate();
+    const template_role: ScTemplate = new ScTemplate();
+
+    template_norole.triple(ScType.NodeVarNoRole, ScType.EdgeAccessVarPosPerm, edgeScAddr);
+    template_role.triple(ScType.NodeVarRole, ScType.EdgeAccessVarPosPerm, edgeScAddr);
+
+    const res_norole = (await this.templateSearch(template_norole)).map((triple) => triple.get(0))
+    const res_role = (await this.templateSearch(template_role)).map((triple) => triple.get(0))
+
+    return res_norole[0] ?? res_role[0] ?? null;
   }
 }
 
