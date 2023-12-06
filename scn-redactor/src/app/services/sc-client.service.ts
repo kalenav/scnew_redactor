@@ -9,7 +9,8 @@ import {
   ScEventType,
   ScTemplate,
   ScType,
-  ScTemplateResult
+  ScTemplateResult,
+  ScHelper
 } from 'ts-sc-client';
 import { ScEdgeIdtf } from '../shared/sc-edge-idtf.enum';
 import { ScnTreeNode, SemanticVicinity, SemanticVicinityByEdgeType } from '../model/scn-tree';
@@ -194,36 +195,16 @@ export class ScClientService {
     return this.scClient.deleteElements(scAddr);
   }
 
-  public async getNodeSystemIdtfByScAddr(addr: ScAddr): Promise<string | null> {
-    const { nrelSystemIdentifier } = await this.findKeynodes('nrel_system_identifier');
-    const systemIdtfTemplate: ScTemplate = new ScTemplate();
-    systemIdtfTemplate.tripleWithRelation(
-        addr,
-        ScType.EdgeDCommon,
-        ScType.Link,
-        ScType.EdgeAccessVarPosPerm,
-        nrelSystemIdentifier
-    );
-
-    const searchResult: ScTemplateResult = (await this.templateSearch(systemIdtfTemplate))[0];
-    return searchResult ? await this.getLinkContents(searchResult.get(2)) : null;
+  public getNodeSystemIdtfByScAddr = async (addr: ScAddr): Promise<string | null> => {
+    return new ScHelper(this.scClient).getSystemIdentifier(addr)
   }
 
-  public async getNodeMainIdtfByScAddr(addr: ScAddr): Promise<string | null> {
-    const { nrelMainIdtf } = await this.findKeynodes('nrel_main_idtf')
-    const mainIdtfTemplate: ScTemplate = new ScTemplate();
-    mainIdtfTemplate.tripleWithRelation(
-        addr,
-        ScType.EdgeDCommonVar,
-        ScType.LinkVar,
-        ScType.EdgeAccessVarPosPerm,
-        nrelMainIdtf
-    );
-
-    const searchResult: ScTemplateResult = (await this.templateSearch(mainIdtfTemplate))[0];
-    const idtf = searchResult ? await this.getLinkContents(searchResult.get(2)) : null
-    return idtf;
+  //TODO: pass language based on editor settings
+  public getNodeMainIdtfByScAddr = async (addr: ScAddr): Promise<string | null> => {
+    const idtf = await new ScHelper(this.scClient).getMainIdentifier(addr, 'ru')
+    return idtf ? idtf as string : null
   }
+
 
   public async getNodeSemanticVicinity(nodeAddr: ScAddr, depth: number = 1): Promise<SemanticVicinity> {
     const semanticVicinity: SemanticVicinity = new SemanticVicinity();
