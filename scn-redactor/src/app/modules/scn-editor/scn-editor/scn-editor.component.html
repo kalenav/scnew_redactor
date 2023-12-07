@@ -1,8 +1,13 @@
 <scn-tree-item
+    *ngIf="!!currRoot; else loader"
     [isRoot]="true"
-    [scnTreeNode]="root"
+    [scnTreeNode]="currRoot"
     [openSubject]="openSubject"
     [editSubject]="editSubject"
     [deleteSubject]="deleteSubject"
     [createSubject]="createSubject"
 ></scn-tree-item>
+
+<ng-template #loader>
+    <div>loading...</div>
+</ng-template>

@@ -1,8 +1,7 @@
 import { Component, OnInit } from '@angular/core';
-import { ScnMockTree } from 'src/app/mock/scn-tree.mock';
 import { ScnTree, ScnTreeNode } from 'src/app/model/scn-tree';
 import { ScClientService } from 'src/app/services/sc-client.service';
-import { ScAddr, ScType } from 'src/ts-sc-client/src';
+import { ScAddr, ScTemplate, ScType } from 'ts-sc-client';
 import { Subject } from 'rxjs';
 import { ScEdgeIdtf } from 'src/app/shared/sc-edge-idtf.enum';
 
@@ -18,20 +17,24 @@ export interface CreateNodeParams {
     styleUrls: ['./scn-editor.component.scss']
 })
 export class ScnEditorComponent implements OnInit {
+    public currRoot: ScnTreeNode | null = null;
+
     public readonly openSubject: Subject<ScAddr> = new Subject<ScAddr>();
     public readonly editSubject: Subject<ScAddr> = new Subject<ScAddr>();
     public readonly deleteSubject: Subject<ScAddr> = new Subject<ScAddr>();
     public readonly createSubject: Subject<CreateNodeParams> = new Subject<CreateNodeParams>();
 
-    private currRootScAddr: ScAddr = new ScAddr(0);
+    private readonly defaultDepth: number = 1;
+    private readonly createdScnPages: ScAddr[] = [];
 
-    private readonly defaultDepth: number = 2;
-
-    constructor(private readonly client: ScClientService) {}
+    constructor(private readonly client: ScClientService) {
+        this.initialize();
+    }
 
     ngOnInit(): void {
         this.openSubject.subscribe((scAddr: ScAddr) => {
-            console.log(`opening ${scAddr.value}`);
+            this.openNodeSemanticVicinity(scAddr);
+            this.client.openScnPage(scAddr);
         });
 
         this.createSubject.subscribe((params: CreateNodeParams) => {
@@ -43,15 +46,41 @@ export class ScnEditorComponent implements OnInit {
         });
 
         this.deleteSubject.subscribe((scAddr: ScAddr) => {
-            console.log(`deleting ${scAddr.value}`);
+            if (confirm(`Are you sure you want to delete node ${scAddr.value}?`)) {
+                // i'll wait before i'm sure that the kb can be recovered in case of catastrophic failure
+                // this.client.deleteScElement(scAddr);
+                this.client.removeElementFromScnPage(scAddr);
+                this.openNodeSemanticVicinity(this.currRoot!.scAddr);
+            }
         });
     }
 
-    public get root(): ScnTreeNode {
-        return this.buildScnTreeFromRoot(this.currRootScAddr).root;
+    private async openNodeSemanticVicinity(scAddr: ScAddr): Promise<void> {
+        this.currRoot = null;
+        this.setCurrRoot(await this.buildScnTreeFromRoot(scAddr));
     }
 
-    private buildScnTreeFromRoot(root: ScAddr, depth: number = this.defaultDepth): ScnTree {
-        return ScnMockTree;
+    private async initialize(): Promise<void> {
+        const { uiStartScElement } = await this.client.findKeynodes('ui_start_sc_element');
+        this.client.templateSearch(new ScTemplate().triple(uiStartScElement, ScType.EdgeAccessVarPosPerm, ScType.Unknown)).then((res) => {
+            if (res.length > 0) {
+                this.openNodeSemanticVicinity(res[0].get(2));
+            }
+            else this.openNodeSemanticVicinity(new ScAddr(1))
+        });
+    }
+
+    private async setCurrRoot(tree: ScnTree): Promise<void> {
+        this.currRoot = tree.root;
+    }
+
+    private async buildScnTreeFromRoot(rootScAddr: ScAddr, depth: number = this.defaultDepth): Promise<ScnTree> {
+        const rootNode: ScnTreeNode = new ScnTreeNode({
+            scAddr: rootScAddr,
+            idtf: await this.client.getNodeMainIdtfByScAddr(rootScAddr) ?? await this.client.getNodeSystemIdtfByScAddr(rootScAddr) ?? '...',
+            semanticVicinity: await this.client.getNodeSemanticVicinity(rootScAddr, depth)
+        });
+
+        return new ScnTree(rootNode);
     }
 }

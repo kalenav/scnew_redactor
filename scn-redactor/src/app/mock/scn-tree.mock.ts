@@ -1,4 +1,4 @@
-import { ScAddr } from "src/ts-sc-client/src";
+import { ScAddr } from "ts-sc-client";
 import { ScnTree, ScnTreeNode, SemanticVicinity, SemanticVicinityByEdgeType } from "../model/scn-tree";
 import { ScEdgeIdtf } from "../shared/sc-edge-idtf.enum";
 

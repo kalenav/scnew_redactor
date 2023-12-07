@@ -2,7 +2,7 @@ import { Component, ElementRef, EventEmitter, Input, Output, ViewChild } from '@
 import { Subject } from 'rxjs';
 import { ScnTreeNode, SemanticVicinityByEdgeType } from 'src/app/model/scn-tree';
 import { ScEdgeIdtf } from 'src/app/shared/sc-edge-idtf.enum';
-import { ScAddr } from 'src/ts-sc-client/src';
+import { ScAddr } from 'ts-sc-client';
 import { CreateNodeParams } from '../scn-editor/scn-editor.component';
 
 @Component({

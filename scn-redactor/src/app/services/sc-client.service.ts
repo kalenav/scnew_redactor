@@ -9,7 +9,11 @@ import {
   ScEventType,
   ScTemplate,
   ScType,
+  ScTemplateResult,
+  ScHelper
 } from 'ts-sc-client';
+import { ScEdgeIdtf } from '../shared/sc-edge-idtf.enum';
+import { ScnTreeNode, SemanticVicinity, SemanticVicinityByEdgeType } from '../model/scn-tree';
 
 type ScTemplateParamValue = string | ScAddr | ScType;
 type ScTemplateParam = [ScTemplateParamValue, string] | ScTemplateParamValue;
@@ -21,30 +25,36 @@ export const snakeToCamelCase = <Str extends string>(str: Str): Str => {
   providedIn: 'root',
 })
 export class ScClientService {
+
   private readonly scClient: ScClient;
-  private cache: Map<string, ScAddr> = new Map();
+  private readonly scTypeToScEdgeIdtfMap: Map<number, ScEdgeIdtf> = new Map<number, ScEdgeIdtf>([
+    [ScType.EdgeAccessConstFuzPerm.value, ScEdgeIdtf.EdgeAccessConstFuzPerm],
+    [ScType.EdgeAccessConstFuzTemp.value, ScEdgeIdtf.EdgeAccessConstFuzTemp],
+    [ScType.EdgeAccessConstNegPerm.value, ScEdgeIdtf.EdgeAccessConstNegPerm],
+    [ScType.EdgeAccessConstNegTemp.value, ScEdgeIdtf.EdgeAccessConstNegTemp],
+    [ScType.EdgeAccessConstPosPerm.value, ScEdgeIdtf.EdgeAccessConstPosPerm],
+    [ScType.EdgeAccessConstPosTemp.value, ScEdgeIdtf.EdgeAccessConstPosTemp],
+    [ScType.EdgeAccessVarFuzPerm.value, ScEdgeIdtf.EdgeAccessVarFuzPerm],
+    [ScType.EdgeAccessVarFuzTemp.value, ScEdgeIdtf.EdgeAccessVarFuzTemp],
+    [ScType.EdgeAccessVarNegPerm.value, ScEdgeIdtf.EdgeAccessVarNegPerm],
+    [ScType.EdgeAccessVarNegTemp.value, ScEdgeIdtf.EdgeAccessVarNegTemp],
+    [ScType.EdgeAccessVarPosPerm.value, ScEdgeIdtf.EdgeAccessVarPosPerm],
+    [ScType.EdgeAccessVarPosTemp.value, ScEdgeIdtf.EdgeAccessVarPosTemp],
+    [ScType.EdgeDCommonConst.value, ScEdgeIdtf.EdgeDCommonConst],
+    [ScType.EdgeDCommonVar.value, ScEdgeIdtf.EdgeDCommonVar],
+    [ScType.EdgeUCommonConst.value, ScEdgeIdtf.EdgeUCommonConst],
+    [ScType.EdgeUCommonVar.value, ScEdgeIdtf.EdgeUCommonVar]
+  ]);
 
   constructor() {
     this.scClient = new ScClient(environment.webSocketAddress);
-  }
-
-  public async getLinkedEntities(entityScAddr: ScAddr): Promise<ScAddr[]> {
-    const linkedEntitiesScAddrs: ScAddr[] = [];
-
-    const template = new ScTemplate();
-    const conceptClass = (
-      await this.scClient.resolveKeynodes([
-        { id: 'concept_class', type: ScType.NodeConst },
-      ])
-    )['concept_class'];
-
-    template.triple(conceptClass, ScType.EdgeAccessVarPosPerm, ScType.NodeVar);
-
-    const res = await this.scClient.templateSearch(template);
-    console.log(conceptClass);
-    console.log(res); // []
-
-    return linkedEntitiesScAddrs;
+    // const t = new ScTemplate();
+    // t.tripleWithRelation(ScType.Unknown, ScType.Unknown, ScType.Link, ScType.EdgeAccessVarPosPerm, new ScAddr(3));
+    // this.templateSearch(t).then(async (sr) => {
+    //     for (const r of sr) {
+    //         console.log(await this.getLinkContents(r.get(2)), r.get(0).value);
+    //     }
+    // });
   }
 
   public findKeynodes = async <K extends [string, ...string[]]>(
@@ -136,13 +146,13 @@ export class ScClientService {
 
   public async selectScnPage(idtf: string | ScAddr) {
     const action = new Action('action_select_scn_page', this);
-    action.addArgs(idtf);
+    await action.addArgs(idtf);
     return action.initiate();
   }
 
   public async deleteScnPage(system_idtf: string) {
     const action = new Action('action_delete_scn_page', this);
-    action.addArgs(system_idtf);
+    await action.addArgs(system_idtf);
     return action.initiate();
   }
 
@@ -155,28 +165,128 @@ export class ScClientService {
    */
   public async openScnPage(idtf: string | ScAddr) {
     const action = new Action('action_open_scn_page', this);
-    action.addArgs(idtf);
+    await action.addArgs(idtf);
     return action.initiate();
   }
 
-  public removeElementFromScnPage(idtf: ScAddr) {
+  public async removeElementFromScnPage(idtf: ScAddr) {
     const action = new Action('action_remove_from_scn_page', this);
-    action.addArgs(idtf);
+    await action.addArgs(idtf);
     return action.initiate();
   }
 
   public async addElementToScnPage(idtf: ScAddr) {
     const action = new Action('action_add_to_scn_page', this);
-    action.addArgs(idtf);
+    await action.addArgs(idtf);
     return action.initiate();
   }
 
-  public async getPageContents(idtf: ScAddr) {
-    const template = new ScTemplate();
-    template.triple(idtf, ScType.EdgeAccessVarPosPerm, ScType.Unknown);
-    return (await this.scClient.templateSearch(template)).map((res) =>
-      res.get(2)
-    );
+  public async getPageContents(idtf: ScAddr): Promise<{ nodes: ScAddr[], arcs: [ScAddr, ScAddr, ScAddr][]}> {
+    const elements_template = new ScTemplate();
+    elements_template.triple(idtf, ScType.EdgeAccessVarPosPerm, ScType.NodeVar);
+    const arcs_template = new ScTemplate();
+    arcs_template.tripleWithRelation([ScType.Unknown, "_el1"],[ScType.Unknown, "_arc"],[ScType.Unknown, "_el2"],ScType.EdgeAccessVarPosPerm,idtf);
+    const page_elements = this.scClient.templateSearch(elements_template)
+    const page_arcs = this.scClient.templateSearch(arcs_template)
+    return { nodes: (await page_elements).map((el) => el.get(2)), arcs: (await page_arcs).map((el) => [el.get(0), el.get(1), el.get(2)])};
+  }
+
+  public async deleteScElements(...scAddr: ScAddr[]): Promise<boolean> {
+    return this.scClient.deleteElements(scAddr);
+  }
+
+  public getNodeSystemIdtfByScAddr = async (addr: ScAddr): Promise<string | null> => {
+    return new ScHelper(this.scClient).getSystemIdentifier(addr)
+  }
+
+  //TODO: pass language based on editor settings
+  public getNodeMainIdtfByScAddr = async (addr: ScAddr): Promise<string | null> => {
+    const idtf = await new ScHelper(this.scClient).getMainIdentifier(addr, 'ru')
+    return idtf ? idtf as string : null
+  }
+
+
+  public async getNodeSemanticVicinity(nodeAddr: ScAddr, depth: number = 1): Promise<SemanticVicinity> {
+    const semanticVicinity: SemanticVicinity = new SemanticVicinity();
+    if (depth === 0) {
+        return semanticVicinity;
+    }
+
+    const tripleTemplate: ScTemplate = new ScTemplate();
+    tripleTemplate.triple(nodeAddr, ScType.Unknown, ScType.Unknown);
+
+    const reverseTripleTemplate: ScTemplate = new ScTemplate();
+    reverseTripleTemplate.triple(ScType.Unknown, ScType.Unknown, nodeAddr);
+
+    const [triples, reverseTriples] = await Promise.all([
+        this.templateSearch(tripleTemplate),
+        this.templateSearch(reverseTripleTemplate)
+    ]);
+
+    (await this.getEdgewiseSemanticVicinities(triples, true, depth)).forEach((vicinity: SemanticVicinityByEdgeType) => {
+        semanticVicinity.add(vicinity.edgeType, vicinity);
+    });
+    (await this.getEdgewiseSemanticVicinities(reverseTriples, false, depth)).forEach((vicinity: SemanticVicinityByEdgeType) => {
+        semanticVicinity.add(vicinity.edgeType, vicinity);
+    });
+
+    semanticVicinity.collapse();
+
+    return semanticVicinity;
+  }
+
+  private async getEdgewiseSemanticVicinities(triples: ScTemplateResult[], rootIsSource: boolean, depth: number): Promise<SemanticVicinityByEdgeType[]> {
+    const vicinities: SemanticVicinityByEdgeType[] = [];
+    // vanilla cycle because using async/await
+    for (const triple of triples) {
+        const currNeighbor: ScAddr = triple.get(rootIsSource ? 2 : 0);
+        const currNeighborIsLink: boolean = (await this.getScElementType(currNeighbor)).isLink();
+
+        const currEdgeType: ScEdgeIdtf = await this.getScEdgeIdtf(triple.get(1));
+        const currEdgeParentRelation: ScAddr | null = await this.getEdgeParentRelation(triple.get(1));
+        const currNeighborTreeNode: ScnTreeNode = new ScnTreeNode({
+            scAddr: currNeighbor,
+            idtf: await this.getNodeMainIdtfByScAddr(currNeighbor) ?? await this.getNodeSystemIdtfByScAddr(currNeighbor) ?? '...',
+            semanticVicinity: await this.getNodeSemanticVicinity(currNeighbor, depth - 1),
+            isLink: currNeighborIsLink,
+            htmlContents: currNeighborIsLink ? await this.getLinkContents(currNeighbor) : ''
+        });
+
+        vicinities.push(new SemanticVicinityByEdgeType({
+            edgeType: currEdgeType,
+            idtf: currEdgeParentRelation ? await this.getNodeMainIdtfByScAddr(currEdgeParentRelation) ?? await this.getNodeSystemIdtfByScAddr(currEdgeParentRelation) ?? 'unknown identifier' : 'unknown relation',
+            relationScAddr: currEdgeParentRelation,
+            sources: rootIsSource ? [] : [currNeighborTreeNode],
+            targets: rootIsSource ? [currNeighborTreeNode] : []
+        }));
+    }
+
+    return vicinities;
+  }
+
+  private async getScEdgeIdtf(edgeScAddr: ScAddr): Promise<ScEdgeIdtf> {
+    return this.scTypeToScEdgeIdtfMap.get((await this.scClient.checkElements([edgeScAddr]))[0].value)!;
+  }
+
+  private async getLinkContents(scAddr: ScAddr): Promise<string> {
+    return (await this.scClient.getLinkContents([scAddr]))[0].data as string;
+  }
+
+  private async getScElementType(scAddr: ScAddr): Promise<ScType> {
+    return (await this.scClient.checkElements([scAddr]))[0];
+  }
+
+  private async getEdgeParentRelation(edgeScAddr: ScAddr): Promise<ScAddr | null> {
+    const template_norole: ScTemplate = new ScTemplate();
+    const template_role: ScTemplate = new ScTemplate();
+
+    template_norole.triple(ScType.NodeVarNoRole, ScType.EdgeAccessVarPosPerm, edgeScAddr);
+    template_role.triple(ScType.NodeVarRole, ScType.EdgeAccessVarPosPerm, edgeScAddr);
+
+    const res_norole = (await this.templateSearch(template_norole)).map((triple) => triple.get(0))
+    const res_role = (await this.templateSearch(template_role)).map((triple) => triple.get(0))
+
+    return res_norole[0] ?? res_role[0] ?? null;
   }
 }
 

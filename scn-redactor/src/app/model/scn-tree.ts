@@ -1,5 +1,10 @@
-import { ScAddr } from "src/ts-sc-client/src";
+import { ScAddr } from "ts-sc-client";
 import { ScEdgeIdtf } from "../shared/sc-edge-idtf.enum";
+
+interface RelationInfo {
+    scAddr: ScAddr,
+    idtf: string
+}
 
 export class SemanticVicinityByEdgeType {
     public readonly relationScAddr: ScAddr | null;
@@ -22,6 +27,12 @@ export class SemanticVicinityByEdgeType {
         this.edgeType = params.edgeType ?? ScEdgeIdtf.EdgeDCommonConst;
         this.sources = params.sources ?? [];
         this.targets = params.targets ?? [];
+    }
+
+    // it is assumed that the vicinities are non-intersecting
+    public merge(another: SemanticVicinityByEdgeType): void {
+        this.sources.push(...another.sources);
+        this.targets.push(...another.targets);
     }
 }
 
@@ -49,20 +60,51 @@ export class SemanticVicinity {
         if (semanticVicinity !== undefined) {
             for (const edgeType in semanticVicinity) {
                 for (const currEdgeSemanticVicinity of semanticVicinity[edgeType as ScEdgeIdtf]!) {
-                    this.semanticVicinity[edgeType as ScEdgeIdtf].push(new SemanticVicinityByEdgeType({
-                        relationScAddr: currEdgeSemanticVicinity.relationScAddr,
-                        idtf: currEdgeSemanticVicinity.idtf,
-                        edgeType: edgeType as ScEdgeIdtf,
-                        sources: currEdgeSemanticVicinity.sources.slice(),
-                        targets: currEdgeSemanticVicinity.targets.slice()
-                    }));
+                    this.add(edgeType as ScEdgeIdtf, currEdgeSemanticVicinity);
                 }
             }
         }
     }
 
+    public add(edgeType: ScEdgeIdtf, vicinity: SemanticVicinityByEdgeType): void {
+        this.semanticVicinity[edgeType].push(vicinity);
+    }
+
     public get(edgeType: ScEdgeIdtf): Array<SemanticVicinityByEdgeType> {
         return this.semanticVicinity[edgeType];
+    }
+
+    public collapse(): void {
+        for (const edgeType in this.semanticVicinity) {
+            const assertedEdgeType: ScEdgeIdtf = edgeType as ScEdgeIdtf;
+
+            const allRelationsForCurrEdgeType: [null, ...RelationInfo[]] = [null];
+            this.semanticVicinity[assertedEdgeType].forEach((vicinity: SemanticVicinityByEdgeType) => {
+                if (!!vicinity.relationScAddr
+                    && allRelationsForCurrEdgeType.every((relationInfo: RelationInfo | null) => relationInfo?.scAddr.value !== vicinity.relationScAddr?.value)
+                ) {
+                    allRelationsForCurrEdgeType.push({ scAddr: vicinity.relationScAddr!, idtf: vicinity.idtf });
+                }
+            });
+
+            if (assertedEdgeType === ScEdgeIdtf.EdgeDCommonConst) {
+                console.log(allRelationsForCurrEdgeType);
+            }
+            const vicinitiesSnapshot: SemanticVicinityByEdgeType[] = this.semanticVicinity[assertedEdgeType].slice();
+            this.semanticVicinity[assertedEdgeType] = allRelationsForCurrEdgeType.map((relationInfo: RelationInfo | null) => {
+                const currVicinity: SemanticVicinityByEdgeType = new SemanticVicinityByEdgeType({
+                    relationScAddr: relationInfo?.scAddr,
+                    idtf: relationInfo?.idtf,
+                    edgeType: assertedEdgeType
+                });
+
+                vicinitiesSnapshot
+                    .filter((vicinity: SemanticVicinityByEdgeType) => vicinity.relationScAddr?.value === (relationInfo?.scAddr?.value ?? null))
+                    .forEach((vicinity: SemanticVicinityByEdgeType) => { currVicinity.merge(vicinity) });
+
+                return currVicinity;
+            });
+        }
     }
 }
 
